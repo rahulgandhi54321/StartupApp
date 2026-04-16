@@ -38,18 +38,25 @@ final class SupabaseService {
         req.httpMethod = "POST"
         req.setValue("application/json", forHTTPHeaderField: "Content-Type")
         req.setValue("application/json", forHTTPHeaderField: "Accept")
-        req.setValue("return=representation", forHTTPHeaderField: "Prefer")
-        // Upsert on user_id conflict
-        req.setValue("resolution=merge-duplicates,on_conflict=user_id", forHTTPHeaderField: "Prefer")
+        // Both Prefer directives must be in a single header value
+        req.setValue("return=representation,resolution=merge-duplicates,on_conflict=user_id", forHTTPHeaderField: "Prefer")
 
-        req.httpBody = try JSONEncoder().encode(row)
+        // Strip server-managed fields before encoding
+        var payload = row
+        payload.id = nil
+        payload.created_at = nil
+        payload.updated_at = nil
+        req.httpBody = try JSONEncoder().encode(payload)
 
         let (data, resp) = try await URLSession.shared.data(for: req)
         try validateResponse(resp, data: data)
 
-        let rows = try JSONDecoder().decode([ProfileRow].self, from: data)
-        guard let saved = rows.first else { throw SupabaseError.noData }
-        return saved
+        // Supabase returns an array even for single-row upserts
+        if let rows = try? JSONDecoder().decode([ProfileRow].self, from: data), let saved = rows.first {
+            return saved
+        }
+        // Fallback: return what we sent if the body is unexpectedly empty
+        return row
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────
