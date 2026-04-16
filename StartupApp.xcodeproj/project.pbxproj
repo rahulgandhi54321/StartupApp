@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		F4E085095D874B0AAA71D3DE /* JobPreference.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4FCFF7F0BFD1427F84368F02 /* JobPreference.swift */; };
+		8B8FD69992974F80A7E430D3 /* JobPreferenceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A40F6C329904FF09DBF79C0 /* JobPreferenceView.swift */; };
 		1074C0B7783A4B299489224A /* SupabaseService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 77B9A7C216B54951AE87DE8A /* SupabaseService.swift */; };
 		990E4AF5731847A6AE69986B /* UserProfile.swift in Sources */ = {isa = PBXBuildFile; fileRef = 258AD9D9E70743AB83B9C179 /* UserProfile.swift */; };
 		069ECA5D75D04633935CC7E6 /* AuthViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35C1EBBA7E4E40AC8B080ACA /* AuthViewModel.swift */; };
@@ -21,6 +23,8 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		4FCFF7F0BFD1427F84368F02 /* JobPreference.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = "JobPreference.swift"; path = "StartupApp/Models/JobPreference.swift"; sourceTree = SOURCE_ROOT; };
+		6A40F6C329904FF09DBF79C0 /* JobPreferenceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = "JobPreferenceView.swift"; path = "StartupApp/Views/JobPreferenceView.swift"; sourceTree = SOURCE_ROOT; };
 		77B9A7C216B54951AE87DE8A /* SupabaseService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = "SupabaseService.swift"; path = "StartupApp/Managers/SupabaseService.swift"; sourceTree = SOURCE_ROOT; };
 		258AD9D9E70743AB83B9C179 /* UserProfile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = "UserProfile.swift"; path = "StartupApp/Models/UserProfile.swift"; sourceTree = SOURCE_ROOT; };
 		17447535736E4C118F574ECD /* StartupApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = StartupApp.swift; path = StartupApp/StartupApp.swift; sourceTree = SOURCE_ROOT; };
@@ -185,6 +189,8 @@
 				4EDC762E517C440380116D54 /* GoogleSignInManager.swift in Sources */,
 							990E4AF5731847A6AE69986B /* UserProfile.swift in Sources */,
 				1074C0B7783A4B299489224A /* SupabaseService.swift in Sources */,
+				8B8FD69992974F80A7E430D3 /* JobPreferenceView.swift in Sources */,
+				F4E085095D874B0AAA71D3DE /* JobPreference.swift in Sources */,
 );
 			runOnlyForDeploymentPostprocessing = 0;
 		};

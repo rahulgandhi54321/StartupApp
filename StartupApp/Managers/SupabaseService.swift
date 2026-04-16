@@ -1,14 +1,14 @@
 import Foundation
 
-// Supabase REST client — no external SDK needed.
 final class SupabaseService {
     static let shared = SupabaseService()
     private init() {}
 
-    private let url     = "https://btmofwguupglwmkxvdjr.supabase.co"
+    private let baseURL = "https://btmofwguupglwmkxvdjr.supabase.co"
     private let anonKey = "sb_publishable_6ZvX9-YUtcVREVA_KbjQqw_HyIle67z"
 
-    // ── Codable model matching the DB schema ──────────────────────────────────
+    // ── MARK: Models ──────────────────────────────────────────────────────────
+
     struct ProfileRow: Codable {
         var id:         String?
         var user_id:    String
@@ -16,76 +16,112 @@ final class SupabaseService {
         var email:      String
         var phone:      String
         var job_role:   String
+        var gender:     String
         var created_at: String?
         var updated_at: String?
     }
 
-    // ── Fetch profile for a given user_id ─────────────────────────────────────
+    struct JobPrefRow: Codable {
+        var id:              String?
+        var user_id:         String
+        var resume_url:      String
+        var current_ctc:     String
+        var expected_ctc:    String
+        var location:        String
+        var notice_period:   String
+        var experience:      String
+        var linkedin_url:    String
+        var skills:          String
+        var created_at:      String?
+        var updated_at:      String?
+    }
+
+    // ── MARK: Profile ─────────────────────────────────────────────────────────
+
     func fetchProfile(userId: String) async throws -> ProfileRow? {
         var req = request("/rest/v1/profiles?user_id=eq.\(userId)&limit=1")
         req.setValue("application/json", forHTTPHeaderField: "Accept")
-
         let (data, resp) = try await URLSession.shared.data(for: req)
-        try validateResponse(resp, data: data)
-
-        let rows = try JSONDecoder().decode([ProfileRow].self, from: data)
-        return rows.first
+        try validate(resp, data: data)
+        return try JSONDecoder().decode([ProfileRow].self, from: data).first
     }
 
-    // ── Upsert (insert or update) profile ─────────────────────────────────────
     func upsertProfile(_ row: ProfileRow) async throws -> ProfileRow {
-        // on_conflict goes in the URL, not the Prefer header
         var req = request("/rest/v1/profiles?on_conflict=user_id")
         req.httpMethod = "POST"
         req.setValue("application/json", forHTTPHeaderField: "Content-Type")
         req.setValue("application/json", forHTTPHeaderField: "Accept")
         req.setValue("return=representation,resolution=merge-duplicates", forHTTPHeaderField: "Prefer")
-
-        // Strip server-managed fields before encoding
-        var payload = row
-        payload.id = nil
-        payload.created_at = nil
-        payload.updated_at = nil
-        req.httpBody = try JSONEncoder().encode(payload)
-
+        var p = row; p.id = nil; p.created_at = nil; p.updated_at = nil
+        req.httpBody = try JSONEncoder().encode(p)
         let (data, resp) = try await URLSession.shared.data(for: req)
-        try validateResponse(resp, data: data)
-
-        // Supabase returns an array even for single-row upserts
-        if let rows = try? JSONDecoder().decode([ProfileRow].self, from: data), let saved = rows.first {
-            return saved
-        }
-        // Fallback: return what we sent if the body is unexpectedly empty
-        return row
+        try validate(resp, data: data)
+        return try JSONDecoder().decode([ProfileRow].self, from: data).first ?? row
     }
 
-    // ── Helpers ───────────────────────────────────────────────────────────────
+    // ── MARK: Job Preferences ─────────────────────────────────────────────────
+
+    func fetchJobPref(userId: String) async throws -> JobPrefRow? {
+        var req = request("/rest/v1/job_preferences?user_id=eq.\(userId)&limit=1")
+        req.setValue("application/json", forHTTPHeaderField: "Accept")
+        let (data, resp) = try await URLSession.shared.data(for: req)
+        try validate(resp, data: data)
+        return try JSONDecoder().decode([JobPrefRow].self, from: data).first
+    }
+
+    func upsertJobPref(_ row: JobPrefRow) async throws -> JobPrefRow {
+        var req = request("/rest/v1/job_preferences?on_conflict=user_id")
+        req.httpMethod = "POST"
+        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        req.setValue("application/json", forHTTPHeaderField: "Accept")
+        req.setValue("return=representation,resolution=merge-duplicates", forHTTPHeaderField: "Prefer")
+        var p = row; p.id = nil; p.created_at = nil; p.updated_at = nil
+        req.httpBody = try JSONEncoder().encode(p)
+        let (data, resp) = try await URLSession.shared.data(for: req)
+        try validate(resp, data: data)
+        return try JSONDecoder().decode([JobPrefRow].self, from: data).first ?? row
+    }
+
+    // ── MARK: Resume Upload ───────────────────────────────────────────────────
+
+    func uploadResume(userId: String, pdfData: Data) async throws -> String {
+        let fileName = "\(userId)/resume.pdf"
+        let encoded  = fileName.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? fileName
+        var req = request("/storage/v1/object/resumes/\(encoded)")
+        req.httpMethod = "POST"
+        req.setValue("application/pdf", forHTTPHeaderField: "Content-Type")
+        req.setValue("true", forHTTPHeaderField: "x-upsert")
+        req.httpBody = pdfData
+        let (_, resp) = try await URLSession.shared.data(for: req)
+        try validate(resp, data: Data())
+        // Return public URL
+        return "\(baseURL)/storage/v1/object/public/resumes/\(encoded)"
+    }
+
+    // ── MARK: Helpers ─────────────────────────────────────────────────────────
+
     private func request(_ path: String) -> URLRequest {
-        var req = URLRequest(url: URL(string: url + path)!)
+        var req = URLRequest(url: URL(string: baseURL + path)!)
         req.setValue(anonKey, forHTTPHeaderField: "apikey")
         req.setValue("Bearer \(anonKey)", forHTTPHeaderField: "Authorization")
-        req.timeoutInterval = 15
+        req.timeoutInterval = 20
         return req
     }
 
-    private func validateResponse(_ response: URLResponse, data: Data) throws {
-        guard let http = response as? HTTPURLResponse else { throw SupabaseError.invalidResponse }
+    private func validate(_ response: URLResponse, data: Data) throws {
+        guard let http = response as? HTTPURLResponse else { throw Err.invalid }
         guard (200...299).contains(http.statusCode) else {
-            let body = String(data: data, encoding: .utf8) ?? "unknown"
-            throw SupabaseError.http(http.statusCode, body)
+            throw Err.http(http.statusCode, String(data: data, encoding: .utf8) ?? "")
         }
     }
 
-    enum SupabaseError: LocalizedError {
-        case invalidResponse
-        case noData
-        case http(Int, String)
-
+    enum Err: LocalizedError {
+        case invalid, noData, http(Int, String)
         var errorDescription: String? {
             switch self {
-            case .invalidResponse:    return "Invalid server response"
-            case .noData:             return "No data returned"
-            case .http(let code, let body): return "Server error \(code): \(body)"
+            case .invalid:          return "Invalid response"
+            case .noData:           return "No data"
+            case .http(let c, let b): return "Server error \(c): \(b)"
             }
         }
     }
