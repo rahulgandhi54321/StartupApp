@@ -1,4 +1,5 @@
 import SwiftUI
+import SwiftData
 
 @main
 struct StartupApp: App {
@@ -9,5 +10,6 @@ struct StartupApp: App {
             ContentView()
                 .environmentObject(authVM)
         }
+        .modelContainer(for: UserProfile.self)
     }
 }
