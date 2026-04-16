@@ -1,0 +1,30 @@
+name: StartupApp
+options:
+  bundleIdPrefix: com.yourcompany
+  deploymentTarget:
+    iOS: "17.0"
+  xcodeVersion: "16"
+
+packages:
+  GoogleSignIn:
+    url: https://github.com/google/GoogleSignIn-iOS
+    from: "7.0.0"
+
+targets:
+  StartupApp:
+    type: application
+    platform: iOS
+    deploymentTarget: "17.0"
+    sources:
+      - StartupApp
+    info:
+      path: StartupApp/Info.plist
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.yourcompany.startupapp
+        SWIFT_VERSION: "5.9"
+        TARGETED_DEVICE_FAMILY: "1,2"
+        INFOPLIST_FILE: StartupApp/Info.plist
+    dependencies:
+      - package: GoogleSignIn
+        product: GoogleSignIn
