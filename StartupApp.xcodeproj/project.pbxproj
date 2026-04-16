@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		1074C0B7783A4B299489224A /* SupabaseService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 77B9A7C216B54951AE87DE8A /* SupabaseService.swift */; };
 		990E4AF5731847A6AE69986B /* UserProfile.swift in Sources */ = {isa = PBXBuildFile; fileRef = 258AD9D9E70743AB83B9C179 /* UserProfile.swift */; };
 		069ECA5D75D04633935CC7E6 /* AuthViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35C1EBBA7E4E40AC8B080ACA /* AuthViewModel.swift */; };
 		4EDC762E517C440380116D54 /* GoogleSignInManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 43DFF19297154B2F9821ECA5 /* GoogleSignInManager.swift */; };
@@ -20,6 +21,7 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		77B9A7C216B54951AE87DE8A /* SupabaseService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = "SupabaseService.swift"; path = "StartupApp/Managers/SupabaseService.swift"; sourceTree = SOURCE_ROOT; };
 		258AD9D9E70743AB83B9C179 /* UserProfile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = "UserProfile.swift"; path = "StartupApp/Models/UserProfile.swift"; sourceTree = SOURCE_ROOT; };
 		17447535736E4C118F574ECD /* StartupApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = StartupApp.swift; path = StartupApp/StartupApp.swift; sourceTree = SOURCE_ROOT; };
 		2696D9FE960A4EDCADFFD24D /* ColorExtension.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = ColorExtension.swift; path = StartupApp/Resources/ColorExtension.swift; sourceTree = SOURCE_ROOT; };
@@ -98,6 +100,7 @@
 			children = (
 				2696D9FE960A4EDCADFFD24D /* ColorExtension.swift */,
 				43DFF19297154B2F9821ECA5 /* GoogleSignInManager.swift */,
+				77B9A7C216B54951AE87DE8A /* SupabaseService.swift */,
 			);
 			name = Resources;
 			sourceTree = "<group>";
@@ -181,6 +184,7 @@
 				A857C92BB3C4470AA8C77B3E /* ColorExtension.swift in Sources */,
 				4EDC762E517C440380116D54 /* GoogleSignInManager.swift in Sources */,
 							990E4AF5731847A6AE69986B /* UserProfile.swift in Sources */,
+				1074C0B7783A4B299489224A /* SupabaseService.swift in Sources */,
 );
 			runOnlyForDeploymentPostprocessing = 0;
 		};

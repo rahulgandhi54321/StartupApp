@@ -6,6 +6,7 @@ class AuthViewModel: ObservableObject {
     @Published var user: GoogleUserMock?
     @Published var isLoading = false
     @Published var errorMessage: String?
+    @Published var remoteProfile: SupabaseService.ProfileRow?
 
     init() {
         GoogleSignInManager.shared.restorePreviousSignIn { [weak self] user in
@@ -22,10 +23,7 @@ class AuthViewModel: ObservableObject {
         GoogleSignInManager.shared.signIn(presenting: viewController) { [weak self] user, error in
             DispatchQueue.main.async {
                 self?.isLoading = false
-                if let error = error {
-                    self?.errorMessage = error.localizedDescription
-                    return
-                }
+                if let error = error { self?.errorMessage = error.localizedDescription; return }
                 self?.user = user
                 self?.isSignedIn = true
             }
@@ -35,10 +33,13 @@ class AuthViewModel: ObservableObject {
     func signOut() {
         GoogleSignInManager.shared.signOut()
         user = nil
+        remoteProfile = nil
         isSignedIn = false
     }
 
-    var displayName: String { user?.name ?? "User" }
-    var email: String { user?.email ?? "" }
-    var avatarURL: URL? { user?.avatarURL }
+    // Stable user identifier used as the Supabase row key
+    var userId: String    { user?.email ?? "anonymous" }
+    var displayName: String { user?.name  ?? "User" }
+    var email: String       { user?.email ?? "" }
+    var avatarURL: URL?     { user?.avatarURL }
 }
