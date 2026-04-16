@@ -32,45 +32,20 @@ struct ProfileView: View {
                 ScrollView(showsIndicators: false) {
                     VStack(spacing: 20) {
 
-                        // ── Hero card ──────────────────────────────────────
-                        VStack(spacing: 16) {
-                            AvatarView(url: authVM.avatarURL, size: 96)
+                        // ── Avatar + name hero ─────────────────────────────
+                        VStack(spacing: 12) {
+                            AvatarView(url: authVM.avatarURL, size: 88)
 
-                            if isEditing {
-                                EditableHeroFields(
-                                    name:    $editName,
-                                    email:   $editEmail,
-                                    phone:   $editPhone,
-                                    jobRole: $editJobRole
-                                )
-                            } else {
-                                VStack(spacing: 6) {
-                                    Text(displayName)
-                                        .font(.system(size: 22, weight: .bold, design: .rounded))
-                                        .foregroundColor(.black)
-
-                                    Text(displayEmail)
-                                        .font(.system(size: 14, design: .rounded))
-                                        .foregroundColor(.secondary)
-
-                                    if !displayPhone.isEmpty {
-                                        Text(displayPhone)
-                                            .font(.system(size: 14, design: .rounded))
-                                            .foregroundColor(.secondary)
-                                    }
-
-                                    if let role = displayJobRole {
-                                        RoleBadge(role: role)
-                                    }
-                                }
-                            }
+                            Text(displayName)
+                                .font(.system(size: 22, weight: .bold, design: .rounded))
+                                .foregroundColor(.black)
 
                             HStack(spacing: 8) {
                                 BadgeView(text: "Pro",      color: Color(hex: "6C63FF"))
                                 BadgeView(text: "Verified", color: Color(hex: "10B981"))
                             }
                         }
-                        .padding(24)
+                        .padding(.vertical, 24)
                         .frame(maxWidth: .infinity)
                         .background(.white)
                         .clipShape(RoundedRectangle(cornerRadius: 24))
@@ -90,6 +65,78 @@ struct ProfileView: View {
                             .background(Color(hex: "10B981").opacity(0.1))
                             .clipShape(RoundedRectangle(cornerRadius: 12))
                             .transition(.move(edge: .top).combined(with: .opacity))
+                        }
+
+                        // ── Profile info card (read or edit) ───────────────
+                        VStack(alignment: .leading, spacing: 0) {
+                            Text("PROFILE INFO")
+                                .font(.system(size: 11, weight: .semibold, design: .rounded))
+                                .foregroundColor(.secondary)
+                                .padding(.horizontal, 4)
+                                .padding(.bottom, 8)
+
+                            VStack(spacing: 0) {
+                                if isEditing {
+                                    // ── Edit mode ──────────────────────────
+                                    VStack(spacing: 12) {
+                                        EditField(icon: "person.fill",   placeholder: "Full Name",      text: $editName,  keyboard: .default)
+                                        EditField(icon: "envelope.fill", placeholder: "Email Address",  text: $editEmail, keyboard: .emailAddress)
+                                        EditField(icon: "phone.fill",    placeholder: "Contact Number", text: $editPhone, keyboard: .phonePad)
+                                        JobRolePicker(selected: $editJobRole)
+                                    }
+                                    .padding(16)
+                                } else {
+                                    // ── Read mode ──────────────────────────
+                                    InfoRow(icon: "person.fill",
+                                            iconColor: Color(hex: "6C63FF"),
+                                            label: "Full Name",
+                                            value: displayName.isEmpty ? "Not set" : displayName,
+                                            empty: displayName.isEmpty)
+                                    Divider().padding(.leading, 52)
+
+                                    InfoRow(icon: "envelope.fill",
+                                            iconColor: Color(hex: "3B82F6"),
+                                            label: "Email",
+                                            value: displayEmail.isEmpty ? "Not set" : displayEmail,
+                                            empty: displayEmail.isEmpty)
+                                    Divider().padding(.leading, 52)
+
+                                    InfoRow(icon: "phone.fill",
+                                            iconColor: Color(hex: "10B981"),
+                                            label: "Contact Number",
+                                            value: displayPhone.isEmpty ? "Not set" : displayPhone,
+                                            empty: displayPhone.isEmpty)
+                                    Divider().padding(.leading, 52)
+
+                                    HStack(spacing: 14) {
+                                        Image(systemName: "briefcase.fill")
+                                            .font(.system(size: 15))
+                                            .foregroundColor(Color(hex: "F59E0B"))
+                                            .frame(width: 32, height: 32)
+                                            .background(Color(hex: "F59E0B").opacity(0.12))
+                                            .clipShape(RoundedRectangle(cornerRadius: 8))
+
+                                        VStack(alignment: .leading, spacing: 2) {
+                                            Text("Job Role")
+                                                .font(.system(size: 11, weight: .medium, design: .rounded))
+                                                .foregroundColor(.secondary)
+                                            if let role = displayJobRole {
+                                                RoleBadge(role: role)
+                                            } else {
+                                                Text("Not set")
+                                                    .font(.system(size: 15, design: .rounded))
+                                                    .foregroundColor(Color(.placeholderText))
+                                            }
+                                        }
+                                        Spacer()
+                                    }
+                                    .padding(.horizontal, 16)
+                                    .padding(.vertical, 14)
+                                }
+                            }
+                            .background(.white)
+                            .clipShape(RoundedRectangle(cornerRadius: 16))
+                            .shadow(color: .black.opacity(0.04), radius: 8, y: 2)
                         }
 
                         // ── Sign out ───────────────────────────────────────
@@ -172,42 +219,57 @@ struct ProfileView: View {
     }
 }
 
-// ── Role badge shown in read mode ──────────────────────────────────────────────
+// ── Info row (read mode) ───────────────────────────────────────────────────────
+
+struct InfoRow: View {
+    let icon: String
+    let iconColor: Color
+    let label: String
+    let value: String
+    var empty: Bool = false
+
+    var body: some View {
+        HStack(spacing: 14) {
+            Image(systemName: icon)
+                .font(.system(size: 15))
+                .foregroundColor(iconColor)
+                .frame(width: 32, height: 32)
+                .background(iconColor.opacity(0.12))
+                .clipShape(RoundedRectangle(cornerRadius: 8))
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(label)
+                    .font(.system(size: 11, weight: .medium, design: .rounded))
+                    .foregroundColor(.secondary)
+                Text(value)
+                    .font(.system(size: 15, design: .rounded))
+                    .foregroundColor(empty ? Color(.placeholderText) : .black)
+            }
+            Spacer()
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 14)
+    }
+}
+
+// ── Role badge ─────────────────────────────────────────────────────────────────
 
 struct RoleBadge: View {
     let role: JobRole
     var body: some View {
-        HStack(spacing: 6) {
-            Image(systemName: role.icon)
-                .font(.system(size: 12, weight: .semibold))
-            Text(role.rawValue)
-                .font(.system(size: 13, weight: .semibold, design: .rounded))
+        HStack(spacing: 5) {
+            Image(systemName: role.icon).font(.system(size: 11, weight: .semibold))
+            Text(role.rawValue).font(.system(size: 12, weight: .semibold, design: .rounded))
         }
         .foregroundColor(Color(hex: role.color))
-        .padding(.horizontal, 12)
-        .padding(.vertical, 6)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 5)
         .background(Color(hex: role.color).opacity(0.12))
         .clipShape(Capsule())
     }
 }
 
-// ── Editable fields ────────────────────────────────────────────────────────────
-
-struct EditableHeroFields: View {
-    @Binding var name: String
-    @Binding var email: String
-    @Binding var phone: String
-    @Binding var jobRole: JobRole?
-
-    var body: some View {
-        VStack(spacing: 12) {
-            EditField(icon: "person.fill",   placeholder: "Full Name",      text: $name,  keyboard: .default)
-            EditField(icon: "envelope.fill", placeholder: "Email Address",  text: $email, keyboard: .emailAddress)
-            EditField(icon: "phone.fill",    placeholder: "Contact Number", text: $phone, keyboard: .phonePad)
-            JobRolePicker(selected: $jobRole)
-        }
-    }
-}
+// ── Job role picker ────────────────────────────────────────────────────────────
 
 struct JobRolePicker: View {
     @Binding var selected: JobRole?
@@ -215,20 +277,16 @@ struct JobRolePicker: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            // Trigger button
             Button { withAnimation(.spring(response: 0.3)) { expanded.toggle() } } label: {
                 HStack(spacing: 10) {
                     Image(systemName: "briefcase.fill")
                         .font(.system(size: 14))
                         .foregroundColor(Color(hex: "6C63FF"))
                         .frame(width: 20)
-
                     Text(selected?.rawValue ?? "Select Job Role")
                         .font(.system(size: 15, design: .rounded))
                         .foregroundColor(selected == nil ? Color(.placeholderText) : .black)
-
                     Spacer()
-
                     Image(systemName: expanded ? "chevron.up" : "chevron.down")
                         .font(.system(size: 12, weight: .semibold))
                         .foregroundColor(Color(hex: "6C63FF"))
@@ -236,22 +294,15 @@ struct JobRolePicker: View {
                 .padding(.horizontal, 14)
                 .padding(.vertical, 13)
                 .background(Color(hex: "F5F5FF"))
-                .clipShape(RoundedRectangle(cornerRadius: expanded ? 12 : 12, style: .continuous))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 12)
-                        .stroke(Color(hex: "6C63FF").opacity(expanded ? 0.6 : 0.3), lineWidth: 1)
-                )
+                .clipShape(RoundedRectangle(cornerRadius: 12))
+                .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color(hex: "6C63FF").opacity(expanded ? 0.6 : 0.3), lineWidth: 1))
             }
 
-            // Dropdown options
             if expanded {
                 VStack(spacing: 0) {
                     ForEach(JobRole.allCases, id: \.self) { role in
                         Button {
-                            withAnimation(.spring(response: 0.3)) {
-                                selected = role
-                                expanded = false
-                            }
+                            withAnimation(.spring(response: 0.3)) { selected = role; expanded = false }
                         } label: {
                             HStack(spacing: 10) {
                                 Image(systemName: role.icon)
@@ -285,6 +336,8 @@ struct JobRolePicker: View {
         }
     }
 }
+
+// ── Shared components ──────────────────────────────────────────────────────────
 
 struct EditField: View {
     let icon: String
