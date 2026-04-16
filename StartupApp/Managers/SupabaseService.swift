@@ -34,12 +34,12 @@ final class SupabaseService {
 
     // ── Upsert (insert or update) profile ─────────────────────────────────────
     func upsertProfile(_ row: ProfileRow) async throws -> ProfileRow {
-        var req = request("/rest/v1/profiles")
+        // on_conflict goes in the URL, not the Prefer header
+        var req = request("/rest/v1/profiles?on_conflict=user_id")
         req.httpMethod = "POST"
         req.setValue("application/json", forHTTPHeaderField: "Content-Type")
         req.setValue("application/json", forHTTPHeaderField: "Accept")
-        // Both Prefer directives must be in a single header value
-        req.setValue("return=representation,resolution=merge-duplicates,on_conflict=user_id", forHTTPHeaderField: "Prefer")
+        req.setValue("return=representation,resolution=merge-duplicates", forHTTPHeaderField: "Prefer")
 
         // Strip server-managed fields before encoding
         var payload = row
