@@ -439,21 +439,35 @@ struct JobCard: View {
 
             Divider().padding(.leading, 74)
 
-            HStack(spacing: 14) {
+            HStack(spacing: 10) {
                 if !job.location.isEmpty {
-                    Label(job.location, systemImage: "location.fill")
-                        .lineLimit(1)
+                    Label(job.location, systemImage: "location.fill").lineLimit(1)
                 }
                 if !job.salary.isEmpty {
                     Label(job.salary, systemImage: "indianrupeesign.circle.fill")
                 }
                 Spacer()
-                if !job.posted_at.isEmpty {
-                    Text(job.posted_at).font(.system(size: 11, design: .rounded)).foregroundColor(.secondary)
-                }
+                // Experience badge
+                let exp = job.inferredExperience
+                Text(exp.rawValue)
+                    .font(.system(size: 10, weight: .semibold, design: .rounded))
+                    .foregroundColor(exp == .senior ? Color(hex: "6C63FF") : exp == .mid ? Color(hex: "F59E0B") : Color(hex: "10B981"))
+                    .padding(.horizontal, 7).padding(.vertical, 3)
+                    .background((exp == .senior ? Color(hex: "6C63FF") : exp == .mid ? Color(hex: "F59E0B") : Color(hex: "10B981")).opacity(0.1))
+                    .clipShape(Capsule())
             }
             .font(.system(size: 12, design: .rounded)).foregroundColor(.secondary)
-            .padding(.horizontal, 16).padding(.vertical, 12)
+            .padding(.horizontal, 16).padding(.vertical, 10)
+
+            // Posted date row
+            if !job.posted_at.isEmpty {
+                HStack {
+                    Label("Posted \(job.posted_at)", systemImage: "clock")
+                        .font(.system(size: 11, design: .rounded)).foregroundColor(.secondary)
+                    Spacer()
+                }
+                .padding(.horizontal, 16).padding(.bottom, 10)
+            }
         }
         .background(.white).clipShape(RoundedRectangle(cornerRadius: 18))
         .shadow(color: .black.opacity(0.05), radius: 8, y: 3)

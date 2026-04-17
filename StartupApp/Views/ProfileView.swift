@@ -15,7 +15,7 @@ struct ProfileView: View {
     // ── Edit state: Job Preferences ───────────────────────────────────────────
     @State private var editCurrentCTC  = ""
     @State private var editExpectedCTC = ""
-    @State private var editLocation: PreferredLocation? = nil
+    @State private var editLocations: Set<PreferredLocation> = []
     @State private var editNotice:   NoticePeriod?      = nil
     @State private var editExperience = ""
     @State private var editLinkedIn   = ""
@@ -77,7 +77,19 @@ struct ProfileView: View {
                                 .overlay(RoundedRectangle(cornerRadius: 16).stroke(Color(hex: "EF4444").opacity(0.2), lineWidth: 1))
                             }
 
-                            Text("Version 1.0.0").font(.system(size: 12)).foregroundColor(.secondary).padding(.bottom, 8)
+                            VStack(spacing: 4) {
+                                Text("Version 1.0.0")
+                                    .font(.system(size: 12)).foregroundColor(.secondary)
+                                HStack(spacing: 4) {
+                                    Text("Made with")
+                                        .font(.system(size: 12)).foregroundColor(.secondary)
+                                    Image(systemName: "heart.fill")
+                                        .font(.system(size: 11)).foregroundColor(Color(hex: "EF4444"))
+                                    Text("by Rahul Gandhi")
+                                        .font(.system(size: 12, weight: .medium)).foregroundColor(.secondary)
+                                }
+                            }
+                            .padding(.bottom, 8)
                         }
                         .padding(20)
                     }
@@ -148,7 +160,7 @@ struct ProfileView: View {
                         .disabled(isUploadingPDF)
                     EditField(icon: "indianrupeesign.circle.fill", placeholder: "Current CTC (e.g. 12 LPA)",  text: $editCurrentCTC,  keyboard: .default)
                     EditField(icon: "arrow.up.circle.fill",        placeholder: "Expected CTC (e.g. 18 LPA)", text: $editExpectedCTC, keyboard: .default)
-                    PickerField(icon: "location.fill", placeholder: "Preferred Location", options: PreferredLocation.allCases, selected: $editLocation) { $0.rawValue }
+                    MultiLocationPicker(selected: $editLocations)
                     PickerField(icon: "clock.fill",    placeholder: "Notice Period",       options: NoticePeriod.allCases,      selected: $editNotice)   { $0.rawValue }
                     EditField(icon: "calendar",         placeholder: "Years of Experience", text: $editExperience, keyboard: .numberPad)
                     EditField(icon: "link.circle.fill", placeholder: "LinkedIn URL",        text: $editLinkedIn,   keyboard: .URL)
@@ -161,7 +173,7 @@ struct ProfileView: View {
                 Divider().padding(.leading, 52)
                 InfoRow(icon: "arrow.up.circle.fill",        color: Color(hex: "6C63FF"), label: "Expected CTC",  value: j?.expected_ctc)
                 Divider().padding(.leading, 52)
-                InfoRow(icon: "location.fill",               color: Color(hex: "EF4444"), label: "Location",      value: j?.location)
+                InfoRow(icon: "location.fill",               color: Color(hex: "EF4444"), label: "Locations",     value: j?.location.isEmpty == false ? j!.location.replacingOccurrences(of: " | ", with: "\n") : nil)
                 Divider().padding(.leading, 52)
                 InfoRow(icon: "clock.fill",                  color: Color(hex: "F59E0B"), label: "Notice Period",  value: j?.notice_period)
                 Divider().padding(.leading, 52)
@@ -259,8 +271,8 @@ struct ProfileView: View {
         } else {
             editCurrentCTC  = j?.current_ctc   ?? ""
             editExpectedCTC = j?.expected_ctc  ?? ""
-            editLocation    = PreferredLocation(rawValue: j?.location      ?? "")
-            editNotice      = NoticePeriod(rawValue:      j?.notice_period ?? "")
+            editLocations   = PreferredLocation.decode(j?.location ?? "")
+            editNotice      = NoticePeriod(rawValue: j?.notice_period ?? "")
             editExperience  = j?.experience    ?? ""
             editLinkedIn    = j?.linkedin_url  ?? ""
             editSkills      = j?.skills        ?? ""
@@ -302,7 +314,7 @@ struct ProfileView: View {
                         resume_url:    j?.resume_url    ?? "",
                         current_ctc:   editCurrentCTC.trimmingCharacters(in: .whitespaces),
                         expected_ctc:  editExpectedCTC.trimmingCharacters(in: .whitespaces),
-                        location:      editLocation?.rawValue  ?? "",
+                        location:      PreferredLocation.encode(editLocations),
                         notice_period: editNotice?.rawValue    ?? "",
                         experience:    editExperience.trimmingCharacters(in: .whitespaces),
                         linkedin_url:  editLinkedIn.trimmingCharacters(in: .whitespaces),
@@ -497,6 +509,68 @@ struct AvatarView: View {
         }
         .frame(width: size, height: size).clipShape(Circle())
         .overlay(Circle().stroke(.white, lineWidth: 3)).shadow(color: .black.opacity(0.12), radius: 8, y: 4)
+    }
+}
+
+// ── Multi-location picker ─────────────────────────────────────────────────────
+
+struct MultiLocationPicker: View {
+    @Binding var selected: Set<PreferredLocation>
+    @State private var expanded = false
+
+    var body: some View {
+        VStack(spacing: 0) {
+            // Header button
+            Button { withAnimation(.spring(response: 0.3)) { expanded.toggle() } } label: {
+                HStack(spacing: 10) {
+                    Image(systemName: "location.fill")
+                        .font(.system(size: 14)).foregroundColor(Color(hex: "6C63FF")).frame(width: 20)
+                    if selected.isEmpty {
+                        Text("Preferred Locations (select multiple)")
+                            .font(.system(size: 15, design: .rounded)).foregroundColor(Color(.placeholderText))
+                    } else {
+                        Text(selected.map(\.rawValue).sorted().joined(separator: ", "))
+                            .font(.system(size: 14, design: .rounded)).foregroundColor(.black)
+                            .lineLimit(2)
+                    }
+                    Spacer()
+                    Image(systemName: expanded ? "chevron.up" : "chevron.down")
+                        .font(.system(size: 12, weight: .semibold)).foregroundColor(Color(hex: "6C63FF"))
+                }
+                .padding(.horizontal, 14).padding(.vertical, 13)
+                .background(Color(hex: "F5F5FF"))
+                .clipShape(RoundedRectangle(cornerRadius: 12))
+                .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color(hex: "6C63FF").opacity(expanded ? 0.6 : 0.3), lineWidth: 1))
+            }
+
+            if expanded {
+                VStack(spacing: 0) {
+                    ForEach(Array(PreferredLocation.allCases.enumerated()), id: \.offset) { i, loc in
+                        Button {
+                            withAnimation(.spring(response: 0.2)) {
+                                if selected.contains(loc) { selected.remove(loc) }
+                                else { selected.insert(loc) }
+                            }
+                        } label: {
+                            HStack {
+                                Text(loc.rawValue)
+                                    .font(.system(size: 15, design: .rounded)).foregroundColor(.black)
+                                Spacer()
+                                Image(systemName: selected.contains(loc) ? "checkmark.square.fill" : "square")
+                                    .font(.system(size: 18))
+                                    .foregroundColor(selected.contains(loc) ? Color(hex: "6C63FF") : Color(.systemGray3))
+                            }
+                            .padding(.horizontal, 14).padding(.vertical, 13).background(.white)
+                        }
+                        if i < PreferredLocation.allCases.count - 1 { Divider().padding(.leading, 14) }
+                    }
+                }
+                .clipShape(RoundedRectangle(cornerRadius: 12))
+                .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color(hex: "6C63FF").opacity(0.3), lineWidth: 1))
+                .shadow(color: .black.opacity(0.08), radius: 8, y: 4)
+                .transition(.opacity.combined(with: .move(edge: .top)))
+            }
+        }
     }
 }
 

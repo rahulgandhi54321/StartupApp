@@ -79,26 +79,27 @@ final class JobFeedViewModel: ObservableObject {
         seenIDs         = []
         isLoading = true; errorMsg = nil; defer { isLoading = false }
         if let fetched = await fetch(page: currentPage) {
-            jobs          = fetched.jobs
+            let filtered   = applyClientFilters(fetched.jobs)
+            jobs           = filtered
             totalAvailable = fetched.total
-            seenIDs       = Set(fetched.jobs.map(\.id))
+            seenIDs        = Set(fetched.jobs.map(\.id))
         }
     }
 
-    // Pull-to-refresh — go to next page, show fresh batch
+    // Pull-to-refresh — next page, fresh batch
     func refresh() async {
         currentPage += 1
         isLoading = true; errorMsg = nil; defer { isLoading = false }
         if let fetched = await fetch(page: currentPage) {
-            // Deduplicate then replace list with new batch
             let fresh = fetched.jobs.filter { !seenIDs.contains($0.id) }
             fresh.forEach { seenIDs.insert($0.id) }
-            jobs           = fresh.isEmpty ? fetched.jobs : fresh   // fallback if all dupes
+            let source     = fresh.isEmpty ? fetched.jobs : fresh
+            jobs           = applyClientFilters(source)
             totalAvailable = fetched.total
         }
     }
 
-    // Load more — append next page at the bottom
+    // Load more — append next page
     func loadMore() async {
         guard !isLoadingMore && !isLoading else { return }
         currentPage += 1
@@ -106,13 +107,26 @@ final class JobFeedViewModel: ObservableObject {
         if let fetched = await fetch(page: currentPage) {
             let fresh = fetched.jobs.filter { !seenIDs.contains($0.id) }
             fresh.forEach { seenIDs.insert($0.id) }
-            jobs          += fresh
+            jobs          += applyClientFilters(fresh)
             totalAvailable = fetched.total
         }
     }
 
     func search() async {
         await load(role: currentRole, location: currentLocation)
+    }
+
+    // ── Client-side experience filter (Adzuna has no native exp param) ─────────
+    private func applyClientFilters(_ input: [Job]) -> [Job] {
+        guard filters.experience != .any else { return input }
+        return input.filter { job in
+            switch filters.experience {
+            case .any:    return true
+            case .entry:  return job.inferredExperience == .entry
+            case .mid:    return job.inferredExperience == .mid
+            case .senior: return job.inferredExperience == .senior
+            }
+        }
     }
 
     // ── Private fetch ──────────────────────────────────────────────────────────
@@ -138,12 +152,12 @@ final class JobFeedViewModel: ObservableObject {
             URLQueryItem(name: "per_page", value: String(perPage)),
             URLQueryItem(name: "page",     value: String(page)),
         ]
+        // Date posted — passed to backend (Adzuna max_days_old)
         if !filters.datePosted.daysOld.isEmpty {
             items.append(URLQueryItem(name: "days_old", value: filters.datePosted.daysOld))
         }
-        if !filters.experience.param.isEmpty {
-            items.append(URLQueryItem(name: "experience", value: filters.experience.param))
-        }
+        // Experience — handled client-side via applyClientFilters()
+        // Location override — user typed a custom city
         if !filters.locationOverride.isEmpty {
             items.append(URLQueryItem(name: "loc_filter", value: filters.locationOverride))
         }
