@@ -20,6 +20,7 @@ struct JobWebView: View {
     @State private var showAppliedBanner  = false
     @State private var autoFillState: AutoFillState = .idle
     @State private var isMarkedApplied    = false
+    @State private var barExpanded        = false   // collapsed by default — tap wand to expand
 
     @ObservedObject private var appliedStore = AppliedJobsStore.shared
 
@@ -92,65 +93,131 @@ struct JobWebView: View {
         }
     }
 
-    // ── Bottom bar ─────────────────────────────────────────────────────────────
+    // ── Floating action pill (collapsed by default, tap wand to expand) ──────────
+    // Sits in the bottom-right corner as a small pill. Tapping expands the full tray.
+    // This keeps 100% of the webpage accessible.
     private var bottomBar: some View {
-        HStack(spacing: 12) {
-            // Auto-fill button
-            if !isSubmitted {
-                Button { runAutoFill() } label: {
-                    HStack(spacing: 8) {
-                        if autoFillState == .filling {
-                            ProgressView().tint(.white).scaleEffect(0.8)
-                        } else {
+        VStack(spacing: 0) {
+            Spacer()
+            HStack {
+                Spacer()
+                if barExpanded {
+                    // ── Expanded tray ──────────────────────────────────────────
+                    HStack(spacing: 10) {
+                        // Auto-fill
+                        if !isSubmitted {
+                            Button {
+                                withAnimation(.spring(response: 0.3)) { barExpanded = false }
+                                runAutoFill()
+                            } label: {
+                                HStack(spacing: 6) {
+                                    if autoFillState == .filling {
+                                        ProgressView().tint(.white).scaleEffect(0.75)
+                                    } else {
+                                        Image(systemName: autoFillState == .done
+                                              ? "checkmark.circle.fill" : "wand.and.stars")
+                                            .font(.system(size: 13, weight: .semibold))
+                                    }
+                                    Text(autoFillState == .filling ? "Filling…" :
+                                         autoFillState == .done    ? "Review" : "Auto-fill")
+                                        .font(.system(size: 13, weight: .semibold, design: .rounded))
+                                }
+                                .foregroundColor(.white)
+                                .padding(.horizontal, 14).padding(.vertical, 10)
+                                .background(
+                                    autoFillState == .done
+                                        ? AnyShapeStyle(Color(hex: "10B981"))
+                                        : AnyShapeStyle(LinearGradient(
+                                            colors: [Color(hex: "6C63FF"), Color(hex: "A78BFA")],
+                                            startPoint: .leading, endPoint: .trailing))
+                                )
+                                .clipShape(Capsule())
+                            }
+                            .disabled(autoFillState == .filling)
+                            // Re-open review if already filled
+                            .simultaneousGesture(TapGesture().onEnded {
+                                if autoFillState == .done { showReview = true }
+                            })
+                        }
+
+                        // Mark Applied
+                        Button {
+                            withAnimation(.spring(response: 0.3)) { barExpanded = false }
+                            markApplied()
+                        } label: {
+                            HStack(spacing: 5) {
+                                Image(systemName: isMarkedApplied ? "bookmark.fill" : "bookmark")
+                                    .font(.system(size: 13, weight: .semibold))
+                                Text(isMarkedApplied ? "Applied ✓" : "Mark Applied")
+                                    .font(.system(size: 13, weight: .semibold, design: .rounded))
+                            }
+                            .foregroundColor(isMarkedApplied ? Color(hex: "6C63FF") : .white)
+                            .padding(.horizontal, 14).padding(.vertical, 10)
+                            .background(
+                                isMarkedApplied
+                                    ? AnyShapeStyle(Color(hex: "6C63FF").opacity(0.15))
+                                    : AnyShapeStyle(Color(hex: "1C1C1E"))
+                            )
+                            .clipShape(Capsule())
+                            .overlay(Capsule().stroke(
+                                isMarkedApplied ? Color(hex: "6C63FF") : Color.clear,
+                                lineWidth: 1.5))
+                        }
+
+                        // Collapse button
+                        Button {
+                            withAnimation(.spring(response: 0.3)) { barExpanded = false }
+                        } label: {
+                            Image(systemName: "xmark")
+                                .font(.system(size: 12, weight: .bold))
+                                .foregroundColor(.secondary)
+                                .padding(10)
+                                .background(.thinMaterial)
+                                .clipShape(Circle())
+                        }
+                    }
+                    .padding(10)
+                    .background(.ultraThinMaterial)
+                    .clipShape(Capsule())
+                    .shadow(color: .black.opacity(0.15), radius: 12, y: 4)
+                    .transition(.scale(scale: 0.7, anchor: .bottomTrailing)
+                        .combined(with: .opacity))
+                } else {
+                    // ── Collapsed pill — small, bottom-right, stays out of the way ──
+                    Button {
+                        withAnimation(.spring(response: 0.35)) { barExpanded = true }
+                    } label: {
+                        HStack(spacing: 6) {
                             Image(systemName: autoFillState == .done
                                   ? "checkmark.circle.fill" : "wand.and.stars")
-                                .font(.system(size: 14, weight: .semibold))
+                                .font(.system(size: 15, weight: .semibold))
+                                .foregroundColor(autoFillState == .done
+                                                 ? Color(hex: "10B981") : .white)
+                            if isMarkedApplied {
+                                Image(systemName: "bookmark.fill")
+                                    .font(.system(size: 13))
+                                    .foregroundColor(Color(hex: "6C63FF"))
+                            }
                         }
-                        Text(autoFillState == .filling ? "Filling…" :
-                             autoFillState == .done    ? "Filled ✓ — Review" :
-                                                         "Auto-fill")
-                            .font(.system(size: 14, weight: .semibold, design: .rounded))
+                        .padding(.horizontal, 16).padding(.vertical, 12)
+                        .background(
+                            autoFillState == .done
+                                ? AnyShapeStyle(Color(hex: "10B981").opacity(0.15))
+                                : AnyShapeStyle(LinearGradient(
+                                    colors: [Color(hex: "6C63FF"), Color(hex: "A78BFA")],
+                                    startPoint: .leading, endPoint: .trailing))
+                        )
+                        .clipShape(Capsule())
+                        .shadow(color: Color(hex: "6C63FF").opacity(0.4), radius: 10, y: 4)
                     }
-                    .foregroundColor(.white)
-                    .padding(.horizontal, 18).padding(.vertical, 13)
-                    .background(
-                        autoFillState == .done
-                            ? AnyShapeStyle(Color(hex: "10B981"))
-                            : AnyShapeStyle(LinearGradient(
-                                colors: [Color(hex: "6C63FF"), Color(hex: "A78BFA")],
-                                startPoint: .leading, endPoint: .trailing))
-                    )
-                    .clipShape(Capsule())
-                    .shadow(color: Color(hex: "6C63FF").opacity(0.35), radius: 10, y: 5)
-                    .animation(.spring(response: 0.3), value: autoFillState)
+                    .transition(.scale(scale: 0.7, anchor: .bottomTrailing)
+                        .combined(with: .opacity))
                 }
-                .disabled(autoFillState == .filling)
             }
-
-            // Mark as Applied button
-            Button { markApplied() } label: {
-                HStack(spacing: 6) {
-                    Image(systemName: isMarkedApplied ? "bookmark.fill" : "bookmark")
-                        .font(.system(size: 14, weight: .semibold))
-                    Text(isMarkedApplied ? "Applied" : "Mark Applied")
-                        .font(.system(size: 14, weight: .semibold, design: .rounded))
-                }
-                .foregroundColor(isMarkedApplied ? Color(hex: "6C63FF") : .white)
-                .padding(.horizontal, 18).padding(.vertical, 13)
-                .background(
-                    isMarkedApplied
-                        ? AnyShapeStyle(Color(hex: "6C63FF").opacity(0.12))
-                        : AnyShapeStyle(Color(hex: "1C1C1E"))
-                )
-                .clipShape(Capsule())
-                .overlay(
-                    isMarkedApplied
-                        ? Capsule().stroke(Color(hex: "6C63FF"), lineWidth: 1.5)
-                        : nil
-                )
-            }
+            .padding(.trailing, 16)
+            .padding(.bottom, 28)
         }
-        .padding(.horizontal, 16).padding(.bottom, 28)
+        .animation(.spring(response: 0.35), value: barExpanded)
     }
 
     // ── Toolbar ────────────────────────────────────────────────────────────────
@@ -173,7 +240,7 @@ struct JobWebView: View {
     private func runAutoFill() {
         guard let wv = ctrl.webView else { return }
         withAnimation { autoFillState = .filling }
-        let js = autoFillFormScript(userDataJSON: buildUserDataJSON())
+        let js = buildAutoFillJS(userDataJSON: buildUserDataJSON())
         wv.evaluateJavaScript(js) { result, _ in
             DispatchQueue.main.async {
                 if let str = result as? String,
@@ -193,7 +260,7 @@ struct JobWebView: View {
     // ── Submit ─────────────────────────────────────────────────────────────────
     private func runSubmit() {
         showReview = false
-        ctrl.webView?.evaluateJavaScript(submitScript) { _, _ in
+        ctrl.webView?.evaluateJavaScript(submitFormScript) { _, _ in
             DispatchQueue.main.async {
                 isSubmitted = true
                 withAnimation { showSubmitBanner = true }
@@ -263,24 +330,12 @@ struct BannerView: View {
 
 // ── Auto-fill JS (form fields) ────────────────────────────────────────────────
 
-private func autoFillFormScript(userDataJSON: String) -> String { """
+// old script removed — now using AutoFillEngine.buildAutoFillJS
+private func _unused_autoFillFormScript(userDataJSON: String) -> String { """
 (function() {
     var u = \(userDataJSON);
     var maps = [
-        { keys: ['firstname','first_name','given_name','fname'],              val: u.firstName   },
-        { keys: ['lastname','last_name','surname','lname','family'],           val: u.lastName    },
-        { keys: ['fullname','full_name','yourname','applicant','candidate'],   val: u.name        },
-        { keys: ['name'],                                                       val: u.name        },
-        { keys: ['email','mail','e-mail'],                                     val: u.email       },
-        { keys: ['phone','mobile','tel','contact','phoneno','cell'],           val: u.phone       },
-        { keys: ['linkedin','linkedin_url','linkedin_profile'],                val: u.linkedin    },
-        { keys: ['experience','total_exp','years','yrs','work_experience'],    val: u.experience  },
-        { keys: ['currentctc','current_ctc','current_salary','presentctc'],   val: u.currentCTC  },
-        { keys: ['expectedctc','expected_ctc','expected_salary','desired'],    val: u.expectedCTC },
-        { keys: ['skills','key_skills','keyskills','skill_set','tech'],       val: u.skills      },
-        { keys: ['cover','coverletter','cover_letter','message','summary',
-                  'motivation','why','about','note'],                          val: u.coverLetter },
-        { keys: ['jobtitle','job_title','position','role','current_role'],    val: u.jobTitle    },
+        { keys: ['name'], val: u.name },
     ];
 
     function fill(el, value) {
@@ -361,121 +416,6 @@ private func autoFillFormScript(userDataJSON: String) -> String { """
 })();
 """ }
 
-// ── Auto-login JS (runs on every page load) ───────────────────────────────────
-// 1. Detects login/signup forms by email + password fields
-// 2. Fills email from profile
-// 3. Clicks "Sign in with Google" / "Continue with Google" button if present
-// 4. Fills password field only if a stored password exists (not implemented yet → skipped)
-
-func autoLoginScript(email: String) -> String { """
-(function() {
-    var email = \(jsonString(email));
-    if (!email) return 'no_email';
-
-    // Fill email field on login/signup pages
-    function fillEmail() {
-        var selectors = [
-            'input[type=email]',
-            'input[name*=email]', 'input[id*=email]', 'input[placeholder*=email i]',
-            'input[name*=user]',  'input[id*=user]',
-            'input[name*=login]', 'input[id*=login]',
-        ];
-        var filled = false;
-        for (var s of selectors) {
-            var el = document.querySelector(s);
-            if (!el || !el.offsetParent) continue;
-            try {
-                var desc = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value');
-                if (desc && desc.set) desc.set.call(el, email);
-                else el.value = email;
-            } catch(e) { el.value = email; }
-            ['input','change','blur'].forEach(function(t) {
-                el.dispatchEvent(new Event(t, { bubbles: true }));
-            });
-            filled = true;
-        }
-        return filled;
-    }
-
-    // Try to click Google Sign-in button
-    function clickGoogleSSO() {
-        var keywords = [
-            'sign in with google','continue with google','login with google',
-            'google sign in','sign up with google','google',
-        ];
-        var candidates = Array.from(document.querySelectorAll(
-            'a[href*="google"], a[href*="accounts.google"], ' +
-            'button, [role=button], a'
-        ));
-        for (var kw of keywords) {
-            var btn = candidates.find(function(el) {
-                var text = (el.innerText || el.getAttribute('aria-label') || '').toLowerCase();
-                return text.includes(kw);
-            });
-            if (btn) {
-                btn.click();
-                return 'google_clicked';
-            }
-        }
-        // Look for Google logo images inside buttons
-        var imgs = Array.from(document.querySelectorAll('img[src*="google"], img[alt*="google" i]'));
-        for (var img of imgs) {
-            var btn2 = img.closest('button, [role=button], a');
-            if (btn2) { btn2.click(); return 'google_img_clicked'; }
-        }
-        return 'google_not_found';
-    }
-
-    var emailFilled = fillEmail();
-    var googleResult = 'skipped';
-
-    // Only try Google SSO if this looks like a login page (has password field OR sign-in button)
-    var hasPassword = !!document.querySelector('input[type=password]');
-    var looksLikeLogin = hasPassword ||
-        document.title.toLowerCase().match(/log.?in|sign.?in|sign.?up|register|create account/);
-
-    if (looksLikeLogin) {
-        googleResult = clickGoogleSSO();
-    }
-
-    return JSON.stringify({ emailFilled: emailFilled, google: googleResult });
-})();
-""" }
-
-// Safe JSON string literal — NSJSONSerialization only accepts Array/Dictionary at top level,
-// so passing a plain String throws an ObjC exception even inside try?.  Manual escape is safe.
-private func jsonString(_ s: String) -> String {
-    let escaped = s
-        .replacingOccurrences(of: "\\", with: "\\\\")
-        .replacingOccurrences(of: "\"", with: "\\\"")
-        .replacingOccurrences(of: "\n", with: "\\n")
-        .replacingOccurrences(of: "\r", with: "\\r")
-        .replacingOccurrences(of: "\t", with: "\\t")
-    return "\"\(escaped)\""
-}
-
-// ── Submit JS ─────────────────────────────────────────────────────────────────
-
-private let submitScript = """
-(function() {
-    var btn = document.querySelector('button[type=submit], input[type=submit]');
-    if (!btn) {
-        var buttons = Array.from(document.querySelectorAll('button, [role=button]'));
-        var keywords = ['submit application','apply now','apply','send application','submit'];
-        for (var k of keywords) {
-            btn = buttons.find(function(b) {
-                return b.innerText.trim().toLowerCase().indexOf(k) >= 0;
-            });
-            if (btn) break;
-        }
-    }
-    if (btn) { btn.click(); return 'submitted'; }
-    var form = document.querySelector('form');
-    if (form) { form.submit(); return 'form_submitted'; }
-    return 'not_found';
-})();
-"""
-
 // ── WKWebView controller ──────────────────────────────────────────────────────
 
 class JobWebController: NSObject, ObservableObject, WKNavigationDelegate {
@@ -506,8 +446,7 @@ class JobWebController: NSObject, ObservableObject, WKNavigationDelegate {
         }
         // Run auto-login on every page load
         if !profileEmail.isEmpty {
-            let js = autoLoginScript(email: profileEmail)
-            webView.evaluateJavaScript(js, completionHandler: nil)
+            webView.evaluateJavaScript(buildAutoLoginJS(email: profileEmail), completionHandler: nil)
         }
     }
 }

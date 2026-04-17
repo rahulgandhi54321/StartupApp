@@ -234,12 +234,13 @@ struct PortalBrowserView: View {
     @ObservedObject private var cStore  = ConnectedPortalsStore.shared
     @ObservedObject private var aStore  = AppliedJobsStore.shared
 
-    @State private var showReview       = false
+    @State private var showReview          = false
     @State private var filledFields: [(label: String, value: String)] = []
     @State private var autoFillState: AutoFillBrowserState = .idle
-    @State private var showAppliedBanner = false
+    @State private var showAppliedBanner   = false
     @State private var showAutoLoginBanner = false
-    @State private var isMarkedApplied  = false
+    @State private var isMarkedApplied     = false
+    @State private var barExpanded         = false
     @Environment(\.dismiss) private var dismiss
 
     enum AutoFillBrowserState { case idle, filling, done }
@@ -311,76 +312,117 @@ struct PortalBrowserView: View {
         }
     }
 
-    // ── Bottom bar ─────────────────────────────────────────────────────────────
+    // ── Floating pill bottom bar (same collapse pattern as JobWebView) ──────────
     private var bottomBar: some View {
-        HStack(spacing: 10) {
-            // Auto-fill
-            Button { runAutoFill() } label: {
-                HStack(spacing: 7) {
-                    if autoFillState == .filling {
-                        ProgressView().tint(.white).scaleEffect(0.8)
-                    } else {
-                        Image(systemName: autoFillState == .done
-                              ? "checkmark.circle.fill" : "wand.and.stars")
-                            .font(.system(size: 13, weight: .semibold))
-                    }
-                    Text(autoFillState == .filling ? "Filling…" :
-                         autoFillState == .done    ? "Filled ✓" : "Auto-fill")
-                        .font(.system(size: 13, weight: .semibold, design: .rounded))
-                }
-                .foregroundColor(.white)
-                .padding(.horizontal, 16).padding(.vertical, 12)
-                .background(
-                    autoFillState == .done
-                        ? AnyShapeStyle(Color(hex: "10B981"))
-                        : AnyShapeStyle(LinearGradient(
-                            colors: [Color(hex: portal.color), Color(hex: "A78BFA")],
-                            startPoint: .leading, endPoint: .trailing))
-                )
-                .clipShape(Capsule())
-            }
-            .disabled(autoFillState == .filling)
-
-            // Mark Applied
-            Button { markApplied() } label: {
-                HStack(spacing: 5) {
-                    Image(systemName: isMarkedApplied ? "bookmark.fill" : "bookmark")
-                        .font(.system(size: 13, weight: .semibold))
-                    Text(isMarkedApplied ? "Applied" : "Mark Applied")
-                        .font(.system(size: 13, weight: .semibold, design: .rounded))
-                }
-                .foregroundColor(isMarkedApplied ? Color(hex: "6C63FF") : .white)
-                .padding(.horizontal, 16).padding(.vertical, 12)
-                .background(
-                    isMarkedApplied
-                        ? AnyShapeStyle(Color(hex: "6C63FF").opacity(0.12))
-                        : AnyShapeStyle(Color(hex: "1C1C1E"))
-                )
-                .clipShape(Capsule())
-                .overlay(
-                    Capsule().stroke(
-                        isMarkedApplied ? Color(hex: "6C63FF") : Color.clear,
-                        lineWidth: 1.5
-                    )
-                )
-            }
-
+        VStack(spacing: 0) {
             Spacer()
+            HStack {
+                Spacer()
+                if barExpanded {
+                    HStack(spacing: 10) {
+                        // Auto-fill
+                        Button {
+                            withAnimation(.spring(response: 0.3)) { barExpanded = false }
+                            if autoFillState == .done { showReview = true }
+                            else { runAutoFill() }
+                        } label: {
+                            HStack(spacing: 6) {
+                                if autoFillState == .filling {
+                                    ProgressView().tint(.white).scaleEffect(0.75)
+                                } else {
+                                    Image(systemName: autoFillState == .done
+                                          ? "checkmark.circle.fill" : "wand.and.stars")
+                                        .font(.system(size: 13, weight: .semibold))
+                                }
+                                Text(autoFillState == .filling ? "Filling…" :
+                                     autoFillState == .done    ? "Review" : "Auto-fill")
+                                    .font(.system(size: 13, weight: .semibold, design: .rounded))
+                            }
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 14).padding(.vertical, 10)
+                            .background(
+                                autoFillState == .done
+                                    ? AnyShapeStyle(Color(hex: "10B981"))
+                                    : AnyShapeStyle(LinearGradient(
+                                        colors: [Color(hex: portal.color), Color(hex: "A78BFA")],
+                                        startPoint: .leading, endPoint: .trailing))
+                            )
+                            .clipShape(Capsule())
+                        }
+                        .disabled(autoFillState == .filling)
 
-            // Review sheet opener (when auto-filled)
-            if autoFillState == .done {
-                Button { showReview = true } label: {
-                    Image(systemName: "list.clipboard.fill")
-                        .font(.system(size: 16))
-                        .foregroundColor(Color(hex: "10B981"))
-                        .padding(12)
-                        .background(Color(hex: "10B981").opacity(0.12))
-                        .clipShape(Circle())
+                        // Mark Applied
+                        Button {
+                            withAnimation(.spring(response: 0.3)) { barExpanded = false }
+                            markApplied()
+                        } label: {
+                            HStack(spacing: 5) {
+                                Image(systemName: isMarkedApplied ? "bookmark.fill" : "bookmark")
+                                    .font(.system(size: 13, weight: .semibold))
+                                Text(isMarkedApplied ? "Applied ✓" : "Mark Applied")
+                                    .font(.system(size: 13, weight: .semibold, design: .rounded))
+                            }
+                            .foregroundColor(isMarkedApplied ? Color(hex: "6C63FF") : .white)
+                            .padding(.horizontal, 14).padding(.vertical, 10)
+                            .background(
+                                isMarkedApplied
+                                    ? AnyShapeStyle(Color(hex: "6C63FF").opacity(0.15))
+                                    : AnyShapeStyle(Color(hex: "1C1C1E"))
+                            )
+                            .clipShape(Capsule())
+                            .overlay(Capsule().stroke(
+                                isMarkedApplied ? Color(hex: "6C63FF") : Color.clear,
+                                lineWidth: 1.5))
+                        }
+
+                        // Close
+                        Button {
+                            withAnimation(.spring(response: 0.3)) { barExpanded = false }
+                        } label: {
+                            Image(systemName: "xmark")
+                                .font(.system(size: 12, weight: .bold))
+                                .foregroundColor(.secondary)
+                                .padding(10)
+                                .background(.thinMaterial)
+                                .clipShape(Circle())
+                        }
+                    }
+                    .padding(10)
+                    .background(.ultraThinMaterial)
+                    .clipShape(Capsule())
+                    .shadow(color: .black.opacity(0.15), radius: 12, y: 4)
+                    .transition(.scale(scale: 0.7, anchor: .bottomTrailing).combined(with: .opacity))
+                } else {
+                    Button {
+                        withAnimation(.spring(response: 0.35)) { barExpanded = true }
+                    } label: {
+                        HStack(spacing: 6) {
+                            Image(systemName: autoFillState == .done
+                                  ? "checkmark.circle.fill" : "wand.and.stars")
+                                .font(.system(size: 15, weight: .semibold))
+                                .foregroundColor(autoFillState == .done ? Color(hex: "10B981") : .white)
+                            if isMarkedApplied {
+                                Image(systemName: "bookmark.fill")
+                                    .font(.system(size: 13)).foregroundColor(Color(hex: "6C63FF"))
+                            }
+                        }
+                        .padding(.horizontal, 16).padding(.vertical, 12)
+                        .background(
+                            autoFillState == .done
+                                ? AnyShapeStyle(Color(hex: "10B981").opacity(0.15))
+                                : AnyShapeStyle(LinearGradient(
+                                    colors: [Color(hex: portal.color), Color(hex: "A78BFA")],
+                                    startPoint: .leading, endPoint: .trailing))
+                        )
+                        .clipShape(Capsule())
+                        .shadow(color: Color(hex: portal.color).opacity(0.4), radius: 10, y: 4)
+                    }
+                    .transition(.scale(scale: 0.7, anchor: .bottomTrailing).combined(with: .opacity))
                 }
             }
+            .padding(.trailing, 16).padding(.bottom, 28)
         }
-        .padding(.horizontal, 16).padding(.bottom, 28).padding(.top, 10)
-        .background(.ultraThinMaterial)
+        .animation(.spring(response: 0.35), value: barExpanded)
     }
 
     // ── Toolbar ────────────────────────────────────────────────────────────────
@@ -415,8 +457,7 @@ struct PortalBrowserView: View {
     private func runAutoFill() {
         guard let wv = ctrl.webView else { return }
         withAnimation { autoFillState = .filling }
-        let js = portalAutoFillScript(userDataJSON: buildUserDataJSON(),
-                                      portalID: portal.id)
+        let js = buildAutoFillJS(userDataJSON: buildUserDataJSON())
         wv.evaluateJavaScript(js) { result, _ in
             DispatchQueue.main.async {
                 if let str = result as? String,
@@ -436,7 +477,7 @@ struct PortalBrowserView: View {
     // ── Submit ─────────────────────────────────────────────────────────────────
     private func runSubmit() {
         showReview = false
-        ctrl.webView?.evaluateJavaScript(portalSubmitScript) { _, _ in
+        ctrl.webView?.evaluateJavaScript(submitFormScript) { _, _ in
             DispatchQueue.main.async { markApplied() }
         }
     }
@@ -545,8 +586,7 @@ class PortalBrowserController: NSObject, ObservableObject, WKNavigationDelegate 
         }
         // Auto-login on every page
         if !profileEmail.isEmpty {
-            let js = browserAutoLoginScript(email: safeJSONString(profileEmail))
-            webView.evaluateJavaScript(js, completionHandler: nil)
+            webView.evaluateJavaScript(buildAutoLoginJS(email: profileEmail), completionHandler: nil)
         }
     }
 
@@ -586,9 +626,9 @@ struct PortalBrowserRepresentable: UIViewRepresentable {
     }
 }
 
-// ── Auto-fill JS — portal-specific ────────────────────────────────────────────
-
-private func portalAutoFillScript(userDataJSON: String, portalID: String) -> String { """
+// ── Old portal-specific script — replaced by AutoFillEngine.buildAutoFillJS ──
+// Kept as dead code placeholder so the file compiles with no missing references.
+private func _unused_portalAutoFillScript(userDataJSON: String, portalID: String) -> String { """
 (function() {
     var u = \(userDataJSON);
     var host = window.location.hostname.toLowerCase();
@@ -822,9 +862,8 @@ private func portalAutoFillScript(userDataJSON: String, portalID: String) -> Str
 })();
 """ }
 
-// ── Auto-login JS (browser) ───────────────────────────────────────────────────
-
-private func browserAutoLoginScript(email: String) -> String { """
+// ── Old auto-login — replaced by AutoFillEngine.buildAutoLoginJS ──────────────
+private func _unused_browserAutoLoginScript(email: String) -> String { """
 (function() {
     var email = \(email);
     if (!email) return;
@@ -858,9 +897,8 @@ private func browserAutoLoginScript(email: String) -> String { """
 })();
 """ }
 
-// ── Submit JS ─────────────────────────────────────────────────────────────────
-
-private let portalSubmitScript = """
+// ── Old submit — replaced by AutoFillEngine.submitFormScript ──────────────────
+private let _unused_portalSubmitScript = """
 (function() {
     var btn = document.querySelector('button[type=submit], input[type=submit]');
     if (!btn) {
@@ -878,17 +916,6 @@ private let portalSubmitScript = """
 })();
 """
 
-// ── Safe JSON string helper ───────────────────────────────────────────────────
-
-private func safeJSONString(_ s: String) -> String {
-    let e = s
-        .replacingOccurrences(of: "\\", with: "\\\\")
-        .replacingOccurrences(of: "\"", with: "\\\"")
-        .replacingOccurrences(of: "\n", with: "\\n")
-        .replacingOccurrences(of: "\r", with: "\\r")
-        .replacingOccurrences(of: "\t", with: "\\t")
-    return "\"\(e)\""
-}
 
 // ── Auto-fill review sheet for portal browser ─────────────────────────────────
 

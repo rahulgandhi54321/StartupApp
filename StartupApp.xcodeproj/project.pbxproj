@@ -24,6 +24,7 @@
 				AA000013 /* SavedJobsStore_swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000012 /* SavedJobsStore_swift */; };
 				AA000021 /* ConnectedPortalsStore_swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000020 /* ConnectedPortalsStore_swift */; };
 				AA000025 /* AppliedJobsStore_swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000024 /* AppliedJobsStore_swift */; };
+				AA000031 /* AutoFillEngine_swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000030 /* AutoFillEngine_swift */; };
 				AA000027 /* HomeView_swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000026 /* HomeView_swift */; };
 				AA000029 /* JobPortalsView_swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000028 /* JobPortalsView_swift */; };
 				AA000023 /* PortalLoginView_swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000022 /* PortalLoginView_swift */; };
@@ -52,6 +53,7 @@
 		AA000012 /* SavedJobsStore_swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = SavedJobsStore.swift; path = StartupApp/Managers/SavedJobsStore.swift; sourceTree = SOURCE_ROOT; };
 		AA000020 /* ConnectedPortalsStore_swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = ConnectedPortalsStore.swift; path = StartupApp/Managers/ConnectedPortalsStore.swift; sourceTree = SOURCE_ROOT; };
 		AA000024 /* AppliedJobsStore_swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AppliedJobsStore.swift; path = StartupApp/Managers/AppliedJobsStore.swift; sourceTree = SOURCE_ROOT; };
+		AA000030 /* AutoFillEngine_swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AutoFillEngine.swift; path = StartupApp/Managers/AutoFillEngine.swift; sourceTree = SOURCE_ROOT; };
 		AA000026 /* HomeView_swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = HomeView.swift; path = StartupApp/Views/HomeView.swift; sourceTree = SOURCE_ROOT; };
 		AA000028 /* JobPortalsView_swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = JobPortalsView.swift; path = StartupApp/Views/JobPortalsView.swift; sourceTree = SOURCE_ROOT; };
 		AA000022 /* PortalLoginView_swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = PortalLoginView.swift; path = StartupApp/Views/PortalLoginView.swift; sourceTree = SOURCE_ROOT; };
@@ -215,6 +217,7 @@
 				AA000013 /* SavedJobsStore.swift in Sources */,
 							AA000021 /* ConnectedPortalsStore.swift in Sources */,
 							AA000025 /* AppliedJobsStore.swift in Sources */,
+							AA000031 /* AutoFillEngine.swift in Sources */,
 							AA000027 /* HomeView.swift in Sources */,
 							AA000029 /* JobPortalsView.swift in Sources */,
 							AA000023 /* PortalLoginView.swift in Sources */,
