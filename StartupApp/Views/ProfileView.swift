@@ -64,6 +64,9 @@ struct ProfileView: View {
                             // ── Job Preferences ────────────────────────────
                             jobPreferenceCard
 
+                            // ── Connected Portals ───────────────────────────
+                            ConnectedPortalsCard()
+
                             // ── Sign Out ───────────────────────────────────
                             Button { showSignOutAlert = true } label: {
                                 HStack {
@@ -509,6 +512,67 @@ struct AvatarView: View {
         }
         .frame(width: size, height: size).clipShape(Circle())
         .overlay(Circle().stroke(.white, lineWidth: 3)).shadow(color: .black.opacity(0.12), radius: 8, y: 4)
+    }
+}
+
+// ── Connected Portals Card ────────────────────────────────────────────────────
+
+struct ConnectedPortalsCard: View {
+    @ObservedObject private var store = ConnectedPortalsStore.shared
+    @State private var loginPortal: JobPortal? = nil
+
+    var body: some View {
+        CardSection(title: "JOB PORTALS") {
+            VStack(spacing: 0) {
+                ForEach(Array(JobPortal.all.enumerated()), id: \.element.id) { i, portal in
+                    HStack(spacing: 14) {
+                        // Icon
+                        ZStack {
+                            RoundedRectangle(cornerRadius: 10)
+                                .fill(Color(hex: portal.color).opacity(0.12))
+                                .frame(width: 38, height: 38)
+                            Image(systemName: portal.icon)
+                                .font(.system(size: 16))
+                                .foregroundColor(Color(hex: portal.color))
+                        }
+
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(portal.name)
+                                .font(.system(size: 15, weight: .medium, design: .rounded))
+                                .foregroundColor(.black)
+                            Text(store.isConnected(portal) ? "Connected — session saved" : "Not connected")
+                                .font(.system(size: 12, design: .rounded))
+                                .foregroundColor(store.isConnected(portal) ? Color(hex: "10B981") : .secondary)
+                        }
+
+                        Spacer()
+
+                        if store.isConnected(portal) {
+                            HStack(spacing: 6) {
+                                Image(systemName: "checkmark.circle.fill")
+                                    .foregroundColor(Color(hex: "10B981")).font(.system(size: 14))
+                                Button("Reconnect") { loginPortal = portal }
+                                    .font(.system(size: 12, weight: .medium, design: .rounded))
+                                    .foregroundColor(.secondary)
+                            }
+                        } else {
+                            Button("Connect") { loginPortal = portal }
+                                .font(.system(size: 13, weight: .semibold, design: .rounded))
+                                .foregroundColor(.white)
+                                .padding(.horizontal, 14).padding(.vertical, 6)
+                                .background(Color(hex: portal.color))
+                                .clipShape(Capsule())
+                        }
+                    }
+                    .padding(.horizontal, 16).padding(.vertical, 14)
+
+                    if i < JobPortal.all.count - 1 { Divider().padding(.leading, 68) }
+                }
+            }
+        }
+        .navigationDestination(item: $loginPortal) { portal in
+            PortalLoginView(portal: portal)
+        }
     }
 }
 

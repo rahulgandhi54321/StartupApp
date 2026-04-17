@@ -22,6 +22,8 @@
 		DDD47DEFE149401AA4AA3285 /* ProfileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8C99045837274F2DA9156887 /* ProfileView.swift */; };
 		AA000011 /* Job_swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000010 /* Job_swift */; };
 				AA000013 /* SavedJobsStore_swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000012 /* SavedJobsStore_swift */; };
+				AA000021 /* ConnectedPortalsStore_swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000020 /* ConnectedPortalsStore_swift */; };
+				AA000023 /* PortalLoginView_swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000022 /* PortalLoginView_swift */; };
 				AA000015 /* JobFeedViewModel_swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000014 /* JobFeedViewModel_swift */; };
 				AA000017 /* JobFeedView_swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000016 /* JobFeedView_swift */; };
 				AA000019 /* JobWebView_swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000018 /* JobWebView_swift */; };
@@ -45,6 +47,8 @@
 		FD326BCED413411ABD86B0B2 /* MainTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = MainTabView.swift; path = StartupApp/Views/MainTabView.swift; sourceTree = SOURCE_ROOT; };
 		AA000010 /* Job_swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = Job.swift; path = StartupApp/Models/Job.swift; sourceTree = SOURCE_ROOT; };
 		AA000012 /* SavedJobsStore_swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = SavedJobsStore.swift; path = StartupApp/Managers/SavedJobsStore.swift; sourceTree = SOURCE_ROOT; };
+		AA000020 /* ConnectedPortalsStore_swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = ConnectedPortalsStore.swift; path = StartupApp/Managers/ConnectedPortalsStore.swift; sourceTree = SOURCE_ROOT; };
+		AA000022 /* PortalLoginView_swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = PortalLoginView.swift; path = StartupApp/Views/PortalLoginView.swift; sourceTree = SOURCE_ROOT; };
 		AA000014 /* JobFeedViewModel_swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = JobFeedViewModel.swift; path = StartupApp/ViewModels/JobFeedViewModel.swift; sourceTree = SOURCE_ROOT; };
 		AA000016 /* JobFeedView_swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = JobFeedView.swift; path = StartupApp/Views/JobFeedView.swift; sourceTree = SOURCE_ROOT; };
 				AA000018 /* JobWebView_swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = JobWebView.swift; path = StartupApp/Views/JobWebView.swift; sourceTree = SOURCE_ROOT; };
@@ -203,6 +207,8 @@
 				F4E085095D874B0AAA71D3DE /* JobPreference.swift in Sources */,
 				AA000011 /* Job.swift in Sources */,
 				AA000013 /* SavedJobsStore.swift in Sources */,
+							AA000021 /* ConnectedPortalsStore.swift in Sources */,
+							AA000023 /* PortalLoginView.swift in Sources */,
 				AA000015 /* JobFeedViewModel.swift in Sources */,
 				AA000017 /* JobFeedView.swift in Sources */,
 				AA000019 /* JobWebView.swift in Sources */,
