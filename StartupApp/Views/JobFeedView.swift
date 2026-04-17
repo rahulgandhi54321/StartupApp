@@ -7,8 +7,8 @@ struct JobFeedView: View {
     @State private var showSaved      = false
     @State private var showFilters    = false
 
-    var userRole:     String { authVM.remoteProfile?.job_role  ?? "" }
-    var userLocation: String { authVM.remoteJobPref?.location  ?? "India" }
+    var userRole:     String { authVM.remoteProfile?.job_role.isEmpty == false ? authVM.remoteProfile!.job_role : "software engineer" }
+    var userLocation: String { authVM.remoteJobPref?.location.isEmpty  == false ? authVM.remoteJobPref!.location  : "India" }
 
     var body: some View {
         NavigationStack {
@@ -63,7 +63,14 @@ struct JobFeedView: View {
                     Task { await vm.load(role: userRole, location: userLocation) }
                 }
             }
-            .task { await vm.load(role: userRole, location: userLocation) }
+            .task {
+                // Wait for profile to be loaded before fetching jobs
+                if authVM.remoteProfile == nil { await authVM.loadUserData() }
+                await vm.load(role: userRole, location: userLocation)
+            }
+            .onChange(of: authVM.remoteProfile?.job_role) { _ in
+                Task { await vm.load(role: userRole, location: userLocation) }
+            }
         }
     }
 

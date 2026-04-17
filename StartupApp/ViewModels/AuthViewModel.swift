@@ -31,6 +31,15 @@ class AuthViewModel: ObservableObject {
         user = nil; remoteProfile = nil; remoteJobPref = nil; isSignedIn = false
     }
 
+    /// Called once after sign-in so every tab has profile data immediately.
+    func loadUserData() async {
+        guard remoteProfile == nil else { return }
+        async let profile = SupabaseService.shared.fetchProfile(userId: userId)
+        async let jobPref = SupabaseService.shared.fetchJobPref(userId: userId)
+        remoteProfile = (try? await profile)
+        remoteJobPref = (try? await jobPref)
+    }
+
     var userId:      String { user?.email ?? "anonymous" }
     var displayName: String { user?.name  ?? "User" }
     var email:       String { user?.email ?? "" }

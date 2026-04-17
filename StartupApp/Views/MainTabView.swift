@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct MainTabView: View {
+    @EnvironmentObject var authVM: AuthViewModel
     @State private var selectedTab = 0
 
     var body: some View {
@@ -18,6 +19,7 @@ struct MainTabView: View {
                 .tag(2)
         }
         .tint(Color(hex: "6C63FF"))
+        .task { await authVM.loadUserData() }
     }
 }
 
