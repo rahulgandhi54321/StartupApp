@@ -55,32 +55,59 @@ struct JobFilters {
 
 @MainActor
 final class JobFeedViewModel: ObservableObject {
-    @Published var jobs:          [Job]   = []
-    @Published var isLoading             = false
-    @Published var errorMsg: String?     = nil
-    @Published var searchText            = ""
-    @Published var filters               = JobFilters()
+    @Published var jobs:           [Job]   = []
+    @Published var isLoading              = false
+    @Published var isLoadingMore          = false
+    @Published var errorMsg: String?      = nil
+    @Published var searchText             = ""
+    @Published var filters                = JobFilters()
+    @Published var totalAvailable         = 0
 
     private let baseURL = "https://jobbackend-production-3da9.up.railway.app"
+    private let perPage = 50                      // Adzuna max
 
     private var currentRole:     String = ""
     private var currentLocation: String = ""
+    private var currentPage             = 1
+    private var seenIDs:    Set<String> = []      // deduplicate across pages
 
-    func load(role: String, location: String, freshPage: Bool = false) async {
+    // Initial load or filter/search change — reset everything
+    func load(role: String, location: String) async {
         currentRole     = role
         currentLocation = location
+        currentPage     = 1
+        seenIDs         = []
         isLoading = true; errorMsg = nil; defer { isLoading = false }
+        if let fetched = await fetch(page: currentPage) {
+            jobs          = fetched.jobs
+            totalAvailable = fetched.total
+            seenIDs       = Set(fetched.jobs.map(\.id))
+        }
+    }
 
-        let query = searchText.isEmpty ? role : searchText
-        let page  = freshPage ? String(Int.random(in: 1...5)) : "1"
-        guard let url = buildURL(query: query, location: location, page: page) else { return }
-        do {
-            let (data, _) = try await URLSession.shared.data(from: url)
-            let resp = try JSONDecoder().decode(JobsResponse.self, from: data)
-            if let err = resp.error, !err.isEmpty { errorMsg = err; return }
-            jobs = resp.jobs
-        } catch {
-            errorMsg = error.localizedDescription
+    // Pull-to-refresh — go to next page, show fresh batch
+    func refresh() async {
+        currentPage += 1
+        isLoading = true; errorMsg = nil; defer { isLoading = false }
+        if let fetched = await fetch(page: currentPage) {
+            // Deduplicate then replace list with new batch
+            let fresh = fetched.jobs.filter { !seenIDs.contains($0.id) }
+            fresh.forEach { seenIDs.insert($0.id) }
+            jobs           = fresh.isEmpty ? fetched.jobs : fresh   // fallback if all dupes
+            totalAvailable = fetched.total
+        }
+    }
+
+    // Load more — append next page at the bottom
+    func loadMore() async {
+        guard !isLoadingMore && !isLoading else { return }
+        currentPage += 1
+        isLoadingMore = true; defer { isLoadingMore = false }
+        if let fetched = await fetch(page: currentPage) {
+            let fresh = fetched.jobs.filter { !seenIDs.contains($0.id) }
+            fresh.forEach { seenIDs.insert($0.id) }
+            jobs          += fresh
+            totalAvailable = fetched.total
         }
     }
 
@@ -88,17 +115,28 @@ final class JobFeedViewModel: ObservableObject {
         await load(role: currentRole, location: currentLocation)
     }
 
-    func refresh() async {
-        await load(role: currentRole, location: currentLocation, freshPage: true)
+    // ── Private fetch ──────────────────────────────────────────────────────────
+    private func fetch(page: Int) async -> JobsResponse? {
+        let query = searchText.isEmpty ? currentRole : searchText
+        guard let url = buildURL(query: query, location: currentLocation, page: page) else { return nil }
+        do {
+            let (data, _) = try await URLSession.shared.data(from: url)
+            let resp = try JSONDecoder().decode(JobsResponse.self, from: data)
+            if let err = resp.error, !err.isEmpty { errorMsg = err; return nil }
+            return resp
+        } catch {
+            errorMsg = error.localizedDescription
+            return nil
+        }
     }
 
-    private func buildURL(query: String, location: String, page: String) -> URL? {
+    private func buildURL(query: String, location: String, page: Int) -> URL? {
         var comps = URLComponents(string: "\(baseURL)/api/jobs")
         var items: [URLQueryItem] = [
             URLQueryItem(name: "role",     value: query),
             URLQueryItem(name: "location", value: location),
-            URLQueryItem(name: "per_page", value: "25"),
-            URLQueryItem(name: "page",     value: page),
+            URLQueryItem(name: "per_page", value: String(perPage)),
+            URLQueryItem(name: "page",     value: String(page)),
         ]
         if !filters.datePosted.daysOld.isEmpty {
             items.append(URLQueryItem(name: "days_old", value: filters.datePosted.daysOld))

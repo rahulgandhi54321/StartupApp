@@ -148,9 +148,10 @@ struct JobFeedView: View {
     var jobList: some View {
         ScrollView(showsIndicators: false) {
             LazyVStack(spacing: 14) {
+                // Count header
                 HStack {
                     Image(systemName: "briefcase.fill").font(.system(size: 12)).foregroundColor(Color(hex: "6C63FF"))
-                    Text("\(vm.jobs.count) jobs for \"\(userRole.isEmpty ? "All roles" : userRole)\"")
+                    Text("Showing \(vm.jobs.count) of \(vm.totalAvailable) jobs for \"\(userRole.isEmpty ? "All roles" : userRole)\"")
                         .font(.system(size: 13, weight: .medium, design: .rounded)).foregroundColor(.secondary)
                     Spacer()
                 }
@@ -161,6 +162,35 @@ struct JobFeedView: View {
                         JobCard(job: job)
                     }
                     .buttonStyle(.plain)
+                }
+
+                // Load more / end indicator
+                if vm.jobs.count < vm.totalAvailable {
+                    Button {
+                        Task { await vm.loadMore() }
+                    } label: {
+                        HStack(spacing: 10) {
+                            if vm.isLoadingMore {
+                                ProgressView().tint(Color(hex: "6C63FF")).scaleEffect(0.85)
+                                Text("Loading more…")
+                            } else {
+                                Image(systemName: "arrow.down.circle.fill")
+                                Text("Load more jobs")
+                            }
+                        }
+                        .font(.system(size: 15, weight: .semibold, design: .rounded))
+                        .foregroundColor(Color(hex: "6C63FF"))
+                        .frame(maxWidth: .infinity).padding(.vertical, 16)
+                        .background(Color(hex: "6C63FF").opacity(0.08))
+                        .clipShape(RoundedRectangle(cornerRadius: 14))
+                        .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color(hex: "6C63FF").opacity(0.2), lineWidth: 1))
+                    }
+                    .disabled(vm.isLoadingMore)
+                    .onAppear { Task { await vm.loadMore() } } // auto-load when bottom reached
+                } else if !vm.jobs.isEmpty {
+                    Text("You've seen all \(vm.jobs.count) jobs")
+                        .font(.system(size: 13, design: .rounded)).foregroundColor(.secondary)
+                        .padding(.vertical, 8)
                 }
             }
             .padding(.horizontal, 16).padding(.vertical, 8).padding(.bottom, 20)
