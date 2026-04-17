@@ -9,13 +9,9 @@ struct MainTabView: View {
                 .tabItem { Label("Home", systemImage: selectedTab == 0 ? "house.fill" : "house") }
                 .tag(0)
 
-            JobPreferenceView()
-                .tabItem { Label("Jobs", systemImage: selectedTab == 1 ? "briefcase.fill" : "briefcase") }
-                .tag(1)
-
             ProfileView()
-                .tabItem { Label("Profile", systemImage: selectedTab == 2 ? "person.fill" : "person") }
-                .tag(2)
+                .tabItem { Label("Profile", systemImage: selectedTab == 1 ? "person.fill" : "person") }
+                .tag(1)
         }
         .tint(Color(hex: "6C63FF"))
     }

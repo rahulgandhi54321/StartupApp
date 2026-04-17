@@ -114,9 +114,7 @@ struct ProfileView: View {
     // ── Profile Info card ──────────────────────────────────────────────────────
 
     var profileInfoCard: some View {
-        CardSection(title: "PROFILE INFO", buttonLabel: editingSection == .profile ? nil : "Edit") {
-            editingSection == .profile ? startSaveButton(.profile) : nil
-        } content: {
+        CardSection(title: "PROFILE INFO", trailing: { sectionToolbar(for: .profile) }) {
             if editingSection == .profile {
                 VStack(spacing: 12) {
                     EditField(icon: "person.fill",   placeholder: "Full Name",      text: $editName,  keyboard: .default)
@@ -137,46 +135,42 @@ struct ProfileView: View {
                 InfoRow(icon: "briefcase.fill", color: Color(hex: "F59E0B"), label: "Job Role",       value: p?.job_role)
             }
         }
-        .overlay(alignment: .topTrailing) { sectionToolbar(for: .profile) }
     }
 
     // ── Job Preference card ────────────────────────────────────────────────────
 
     var jobPreferenceCard: some View {
-        CardSection(title: "JOB PREFERENCES", buttonLabel: nil, button: { nil }) {
+        CardSection(title: "JOB PREFERENCES", trailing: { sectionToolbar(for: .jobPref) }) {
             if editingSection == .jobPref {
                 VStack(spacing: 12) {
-                    // Resume upload
                     Button { showDocPicker = true } label: { resumeButton }
                         .disabled(isUploadingPDF)
-
                     EditField(icon: "indianrupeesign.circle.fill", placeholder: "Current CTC (e.g. 12 LPA)",  text: $editCurrentCTC,  keyboard: .default)
                     EditField(icon: "arrow.up.circle.fill",        placeholder: "Expected CTC (e.g. 18 LPA)", text: $editExpectedCTC, keyboard: .default)
                     PickerField(icon: "location.fill", placeholder: "Preferred Location", options: PreferredLocation.allCases, selected: $editLocation) { $0.rawValue }
                     PickerField(icon: "clock.fill",    placeholder: "Notice Period",       options: NoticePeriod.allCases,      selected: $editNotice)   { $0.rawValue }
-                    EditField(icon: "calendar",       placeholder: "Years of Experience", text: $editExperience, keyboard: .numberPad)
-                    EditField(icon: "link.circle.fill", placeholder: "LinkedIn URL",       text: $editLinkedIn,   keyboard: .URL)
-                    EditField(icon: "tag.fill",          placeholder: "Skills (comma separated)", text: $editSkills, keyboard: .default)
+                    EditField(icon: "calendar",         placeholder: "Years of Experience", text: $editExperience, keyboard: .numberPad)
+                    EditField(icon: "link.circle.fill", placeholder: "LinkedIn URL",        text: $editLinkedIn,   keyboard: .URL)
+                    EditField(icon: "tag.fill",         placeholder: "Skills (comma separated)", text: $editSkills, keyboard: .default)
                 }.padding(16)
             } else {
                 resumeInfoRow
                 Divider().padding(.leading, 52)
-                InfoRow(icon: "indianrupeesign.circle.fill", color: Color(hex: "10B981"), label: "Current CTC",       value: j?.current_ctc)
+                InfoRow(icon: "indianrupeesign.circle.fill", color: Color(hex: "10B981"), label: "Current CTC",   value: j?.current_ctc)
                 Divider().padding(.leading, 52)
-                InfoRow(icon: "arrow.up.circle.fill",        color: Color(hex: "6C63FF"), label: "Expected CTC",      value: j?.expected_ctc)
+                InfoRow(icon: "arrow.up.circle.fill",        color: Color(hex: "6C63FF"), label: "Expected CTC",  value: j?.expected_ctc)
                 Divider().padding(.leading, 52)
-                InfoRow(icon: "location.fill",               color: Color(hex: "EF4444"), label: "Location",          value: j?.location)
+                InfoRow(icon: "location.fill",               color: Color(hex: "EF4444"), label: "Location",      value: j?.location)
                 Divider().padding(.leading, 52)
-                InfoRow(icon: "clock.fill",                  color: Color(hex: "F59E0B"), label: "Notice Period",     value: j?.notice_period)
+                InfoRow(icon: "clock.fill",                  color: Color(hex: "F59E0B"), label: "Notice Period",  value: j?.notice_period)
                 Divider().padding(.leading, 52)
-                InfoRow(icon: "calendar",                    color: Color(hex: "3B82F6"), label: "Experience",        value: j?.experience.isEmpty == false ? "\(j!.experience) yrs" : nil)
+                InfoRow(icon: "calendar",                    color: Color(hex: "3B82F6"), label: "Experience",     value: j?.experience.isEmpty == false ? "\(j!.experience) yrs" : nil)
                 Divider().padding(.leading, 52)
-                InfoRow(icon: "link.circle.fill",            color: Color(hex: "3B82F6"), label: "LinkedIn",          value: j?.linkedin_url)
+                InfoRow(icon: "link.circle.fill",            color: Color(hex: "3B82F6"), label: "LinkedIn",       value: j?.linkedin_url)
                 Divider().padding(.leading, 52)
-                InfoRow(icon: "tag.fill",                    color: Color(hex: "A78BFA"), label: "Skills",            value: j?.skills)
+                InfoRow(icon: "tag.fill",                    color: Color(hex: "A78BFA"), label: "Skills",         value: j?.skills)
             }
         }
-        .overlay(alignment: .topTrailing) { sectionToolbar(for: .jobPref) }
     }
 
     var resumeInfoRow: some View {
@@ -236,8 +230,6 @@ struct ProfileView: View {
                 .padding(16)
         }
     }
-
-    func startSaveButton(_ section: EditSection) -> AnyView? { nil }
 
     // ── Load ───────────────────────────────────────────────────────────────────
 
@@ -358,23 +350,40 @@ struct ProfileView: View {
 
 // ── CardSection ───────────────────────────────────────────────────────────────
 
-struct CardSection<Content: View>: View {
+struct CardSection<Content: View, Trailing: View>: View {
     let title: String
-    var buttonLabel: String?
-    var button: () -> AnyView?
+    @ViewBuilder let trailing: Trailing
     @ViewBuilder let content: Content
 
-    init(title: String, buttonLabel: String? = nil, button: @escaping () -> AnyView? = { nil }, @ViewBuilder content: () -> Content) {
-        self.title = title; self.buttonLabel = buttonLabel; self.button = button; self.content = content()
+    init(title: String,
+         @ViewBuilder trailing: () -> Trailing,
+         @ViewBuilder content: () -> Content) {
+        self.title    = title
+        self.trailing = trailing()
+        self.content  = content()
     }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text(title).font(.system(size: 11, weight: .semibold, design: .rounded)).foregroundColor(.secondary).padding(.horizontal, 4)
+            HStack(alignment: .center) {
+                Text(title)
+                    .font(.system(size: 11, weight: .semibold, design: .rounded))
+                    .foregroundColor(.secondary)
+                    .padding(.horizontal, 4)
+                Spacer()
+                trailing
+            }
             VStack(spacing: 0) { content }
                 .background(.white).clipShape(RoundedRectangle(cornerRadius: 16))
                 .shadow(color: .black.opacity(0.04), radius: 8, y: 2)
         }
+    }
+}
+
+// Convenience overload — no trailing button
+extension CardSection where Trailing == EmptyView {
+    init(title: String, @ViewBuilder content: () -> Content) {
+        self.init(title: title, trailing: { EmptyView() }, content: content)
     }
 }
 
