@@ -3,9 +3,15 @@ import SwiftUI
 struct JobFeedView: View {
     @EnvironmentObject var authVM: AuthViewModel
     @StateObject private var vm    = JobFeedViewModel()
-    @ObservedObject  private var store = SavedJobsStore.shared
+    @ObservedObject  private var store        = SavedJobsStore.shared
+    @ObservedObject  private var appliedStore = AppliedJobsStore.shared
     @State private var showSaved      = false
     @State private var showFilters    = false
+
+    // Jobs with already-applied ones stripped out
+    var visibleJobs: [Job] {
+        vm.jobs.filter { !appliedStore.isApplied($0) }
+    }
 
     var userRole: String {
         authVM.remoteProfile?.job_role.isEmpty == false ? authVM.remoteProfile!.job_role : "software engineer"
@@ -43,7 +49,7 @@ struct JobFeedView: View {
                         Spacer()
                     } else if let err = vm.errorMsg {
                         errorView(err)
-                    } else if vm.jobs.isEmpty {
+                    } else if visibleJobs.isEmpty {
                         emptyView
                     } else {
                         jobList
@@ -171,13 +177,13 @@ struct JobFeedView: View {
                 // Count header
                 HStack {
                     Image(systemName: "briefcase.fill").font(.system(size: 12)).foregroundColor(Color(hex: "6C63FF"))
-                    Text("Showing \(vm.jobs.count) of \(vm.totalAvailable) jobs for \"\(userRole.isEmpty ? "All roles" : userRole)\"")
+                    Text("Showing \(visibleJobs.count) jobs for \"\(userRole.isEmpty ? "All roles" : userRole)\"")
                         .font(.system(size: 13, weight: .medium, design: .rounded)).foregroundColor(.secondary)
                     Spacer()
                 }
                 .padding(.horizontal, 4)
 
-                ForEach(vm.jobs) { job in
+                ForEach(visibleJobs) { job in
                     NavigationLink(destination: JobDetailView(job: job)) {
                         JobCard(job: job)
                     }
@@ -207,8 +213,8 @@ struct JobFeedView: View {
                     }
                     .disabled(vm.isLoadingMore)
                     .onAppear { Task { await vm.loadMore() } } // auto-load when bottom reached
-                } else if !vm.jobs.isEmpty {
-                    Text("You've seen all \(vm.jobs.count) jobs")
+                } else if !visibleJobs.isEmpty {
+                    Text("You've seen all \(visibleJobs.count) jobs")
                         .font(.system(size: 13, design: .rounded)).foregroundColor(.secondary)
                         .padding(.vertical, 8)
                 }
