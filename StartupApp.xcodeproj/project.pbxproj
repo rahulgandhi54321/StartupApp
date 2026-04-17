@@ -20,7 +20,11 @@
 		A857C92BB3C4470AA8C77B3E /* ColorExtension.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2696D9FE960A4EDCADFFD24D /* ColorExtension.swift */; };
 		BAD136C1CDC1491B876C1584 /* StartupApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17447535736E4C118F574ECD /* StartupApp.swift */; };
 		DDD47DEFE149401AA4AA3285 /* ProfileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8C99045837274F2DA9156887 /* ProfileView.swift */; };
-/* End PBXBuildFile section */
+		AA000011 /* Job_swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000010 /* Job_swift */; };
+				AA000013 /* SavedJobsStore_swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000012 /* SavedJobsStore_swift */; };
+				AA000015 /* JobFeedViewModel_swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000014 /* JobFeedViewModel_swift */; };
+				AA000017 /* JobFeedView_swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000016 /* JobFeedView_swift */; };
+		/* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
 		4FCFF7F0BFD1427F84368F02 /* JobPreference.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = "JobPreference.swift"; path = "StartupApp/Models/JobPreference.swift"; sourceTree = SOURCE_ROOT; };
@@ -38,7 +42,11 @@
 		BA3D5120CCC2493A897A7C44 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = ContentView.swift; path = StartupApp/ContentView.swift; sourceTree = SOURCE_ROOT; };
 		C8977FD64AE64C93A49D7956 /* SignInView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = SignInView.swift; path = StartupApp/Views/SignInView.swift; sourceTree = SOURCE_ROOT; };
 		FD326BCED413411ABD86B0B2 /* MainTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = MainTabView.swift; path = StartupApp/Views/MainTabView.swift; sourceTree = SOURCE_ROOT; };
-/* End PBXFileReference section */
+		AA000010 /* Job_swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = Job.swift; path = StartupApp/Models/Job.swift; sourceTree = SOURCE_ROOT; };
+		AA000012 /* SavedJobsStore_swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = SavedJobsStore.swift; path = StartupApp/Managers/SavedJobsStore.swift; sourceTree = SOURCE_ROOT; };
+		AA000014 /* JobFeedViewModel_swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = JobFeedViewModel.swift; path = StartupApp/ViewModels/JobFeedViewModel.swift; sourceTree = SOURCE_ROOT; };
+		AA000016 /* JobFeedView_swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = JobFeedView.swift; path = StartupApp/Views/JobFeedView.swift; sourceTree = SOURCE_ROOT; };
+		/* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
 		C210A183A8694103B964EF22 /* Frameworks */ = {
@@ -191,6 +199,10 @@
 				1074C0B7783A4B299489224A /* SupabaseService.swift in Sources */,
 				8B8FD69992974F80A7E430D3 /* JobPreferenceView.swift in Sources */,
 				F4E085095D874B0AAA71D3DE /* JobPreference.swift in Sources */,
+				AA000011 /* Job.swift in Sources */,
+				AA000013 /* SavedJobsStore.swift in Sources */,
+				AA000015 /* JobFeedViewModel.swift in Sources */,
+				AA000017 /* JobFeedView.swift in Sources */,
 );
 			runOnlyForDeploymentPostprocessing = 0;
 		};
