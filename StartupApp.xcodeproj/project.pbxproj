@@ -25,6 +25,7 @@
 				AA000021 /* ConnectedPortalsStore_swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000020 /* ConnectedPortalsStore_swift */; };
 				AA000025 /* AppliedJobsStore_swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000024 /* AppliedJobsStore_swift */; };
 				AA000027 /* HomeView_swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000026 /* HomeView_swift */; };
+				AA000029 /* JobPortalsView_swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000028 /* JobPortalsView_swift */; };
 				AA000023 /* PortalLoginView_swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000022 /* PortalLoginView_swift */; };
 				AA000015 /* JobFeedViewModel_swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000014 /* JobFeedViewModel_swift */; };
 				AA000017 /* JobFeedView_swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000016 /* JobFeedView_swift */; };
@@ -52,6 +53,7 @@
 		AA000020 /* ConnectedPortalsStore_swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = ConnectedPortalsStore.swift; path = StartupApp/Managers/ConnectedPortalsStore.swift; sourceTree = SOURCE_ROOT; };
 		AA000024 /* AppliedJobsStore_swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AppliedJobsStore.swift; path = StartupApp/Managers/AppliedJobsStore.swift; sourceTree = SOURCE_ROOT; };
 		AA000026 /* HomeView_swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = HomeView.swift; path = StartupApp/Views/HomeView.swift; sourceTree = SOURCE_ROOT; };
+		AA000028 /* JobPortalsView_swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = JobPortalsView.swift; path = StartupApp/Views/JobPortalsView.swift; sourceTree = SOURCE_ROOT; };
 		AA000022 /* PortalLoginView_swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = PortalLoginView.swift; path = StartupApp/Views/PortalLoginView.swift; sourceTree = SOURCE_ROOT; };
 		AA000014 /* JobFeedViewModel_swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = JobFeedViewModel.swift; path = StartupApp/ViewModels/JobFeedViewModel.swift; sourceTree = SOURCE_ROOT; };
 		AA000016 /* JobFeedView_swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = JobFeedView.swift; path = StartupApp/Views/JobFeedView.swift; sourceTree = SOURCE_ROOT; };
@@ -214,6 +216,7 @@
 							AA000021 /* ConnectedPortalsStore.swift in Sources */,
 							AA000025 /* AppliedJobsStore.swift in Sources */,
 							AA000027 /* HomeView.swift in Sources */,
+							AA000029 /* JobPortalsView.swift in Sources */,
 							AA000023 /* PortalLoginView.swift in Sources */,
 				AA000015 /* JobFeedViewModel.swift in Sources */,
 				AA000017 /* JobFeedView.swift in Sources */,
