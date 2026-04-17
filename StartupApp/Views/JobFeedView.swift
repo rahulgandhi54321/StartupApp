@@ -7,8 +7,21 @@ struct JobFeedView: View {
     @State private var showSaved      = false
     @State private var showFilters    = false
 
-    var userRole:     String { authVM.remoteProfile?.job_role.isEmpty == false ? authVM.remoteProfile!.job_role : "software engineer" }
-    var userLocation: String { authVM.remoteJobPref?.location.isEmpty  == false ? authVM.remoteJobPref!.location  : "India" }
+    var userRole: String {
+        authVM.remoteProfile?.job_role.isEmpty == false ? authVM.remoteProfile!.job_role : "software engineer"
+    }
+
+    // Pull the first physical city from pipe-separated locations.
+    // Skip "Remote" and "Hybrid" for Adzuna's `where` param — fall back to "India".
+    var userLocation: String {
+        guard let raw = authVM.remoteJobPref?.location, !raw.isEmpty else { return "India" }
+        let skip = ["remote", "hybrid"]
+        let city = raw
+            .split(separator: "|")
+            .map { $0.trimmingCharacters(in: .whitespaces) }
+            .first { loc in !skip.contains(where: { loc.lowercased().contains($0) }) }
+        return city ?? "India"
+    }
 
     var body: some View {
         NavigationStack {
