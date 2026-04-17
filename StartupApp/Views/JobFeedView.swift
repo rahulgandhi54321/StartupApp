@@ -491,11 +491,13 @@ struct JobCard: View {
 
 struct JobDetailView: View {
     let job: Job
+    @EnvironmentObject var authVM: AuthViewModel
     @ObservedObject private var store = SavedJobsStore.shared
 
     var body: some View {
         ScrollView(showsIndicators: false) {
             VStack(alignment: .leading, spacing: 16) {
+                // Header card
                 VStack(alignment: .leading, spacing: 8) {
                     Text(job.title).font(.system(size: 22, weight: .bold, design: .rounded)).foregroundColor(.black)
                     Text(job.company).font(.system(size: 16, design: .rounded)).foregroundColor(Color(hex: "6C63FF"))
@@ -512,6 +514,7 @@ struct JobDetailView: View {
                 .background(.white).clipShape(RoundedRectangle(cornerRadius: 18))
                 .shadow(color: .black.opacity(0.05), radius: 8, y: 3)
 
+                // Description card
                 VStack(alignment: .leading, spacing: 8) {
                     Text("About the Role").font(.system(size: 13, weight: .semibold, design: .rounded)).foregroundColor(.secondary)
                     Text(job.description.isEmpty ? "No description available." : job.description + "…")
@@ -522,23 +525,42 @@ struct JobDetailView: View {
                 .shadow(color: .black.opacity(0.05), radius: 8, y: 3)
 
                 VStack(spacing: 12) {
-                    if let url = URL(string: job.url), !job.url.isEmpty {
-                        Link(destination: url) {
-                            HStack {
-                                Image(systemName: "arrow.up.right.square.fill")
-                                Text("Apply Now").font(.system(size: 16, weight: .semibold, design: .rounded))
+                    // ── Apply with auto-fill ────────────────────────────────
+                    if !job.url.isEmpty {
+                        NavigationLink(destination: JobWebView(
+                            job: job,
+                            profile: authVM.remoteProfile,
+                            jobPref: authVM.remoteJobPref
+                        )) {
+                            HStack(spacing: 10) {
+                                Image(systemName: "wand.and.stars")
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text("Apply with Auto-fill")
+                                        .font(.system(size: 16, weight: .semibold, design: .rounded))
+                                    Text("Opens form · auto-fills your details")
+                                        .font(.system(size: 11, design: .rounded)).opacity(0.8)
+                                }
+                                Spacer()
+                                Image(systemName: "chevron.right").font(.system(size: 13, weight: .semibold))
                             }
-                            .foregroundColor(.white).frame(maxWidth: .infinity).padding(.vertical, 16)
-                            .background(LinearGradient(colors: [Color(hex: "6C63FF"), Color(hex: "A78BFA")], startPoint: .leading, endPoint: .trailing))
+                            .foregroundColor(.white).padding(.horizontal, 20).padding(.vertical, 14)
+                            .background(
+                                LinearGradient(colors: [Color(hex: "6C63FF"), Color(hex: "A78BFA")],
+                                               startPoint: .leading, endPoint: .trailing)
+                            )
                             .clipShape(RoundedRectangle(cornerRadius: 14))
+                            .shadow(color: Color(hex: "6C63FF").opacity(0.35), radius: 8, y: 4)
                         }
                     }
+
+                    // Save button
                     Button {
                         withAnimation(.spring(response: 0.3)) { store.toggle(job) }
                     } label: {
                         HStack {
                             Image(systemName: store.isSaved(job) ? "bookmark.fill" : "bookmark")
-                            Text(store.isSaved(job) ? "Saved" : "Save Job").font(.system(size: 16, weight: .semibold, design: .rounded))
+                            Text(store.isSaved(job) ? "Saved" : "Save Job")
+                                .font(.system(size: 16, weight: .semibold, design: .rounded))
                         }
                         .foregroundColor(store.isSaved(job) ? Color(hex: "6C63FF") : .secondary)
                         .frame(maxWidth: .infinity).padding(.vertical, 16)

@@ -24,6 +24,7 @@
 				AA000013 /* SavedJobsStore_swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000012 /* SavedJobsStore_swift */; };
 				AA000015 /* JobFeedViewModel_swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000014 /* JobFeedViewModel_swift */; };
 				AA000017 /* JobFeedView_swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000016 /* JobFeedView_swift */; };
+				AA000019 /* JobWebView_swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000018 /* JobWebView_swift */; };
 		/* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -46,6 +47,7 @@
 		AA000012 /* SavedJobsStore_swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = SavedJobsStore.swift; path = StartupApp/Managers/SavedJobsStore.swift; sourceTree = SOURCE_ROOT; };
 		AA000014 /* JobFeedViewModel_swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = JobFeedViewModel.swift; path = StartupApp/ViewModels/JobFeedViewModel.swift; sourceTree = SOURCE_ROOT; };
 		AA000016 /* JobFeedView_swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = JobFeedView.swift; path = StartupApp/Views/JobFeedView.swift; sourceTree = SOURCE_ROOT; };
+				AA000018 /* JobWebView_swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = JobWebView.swift; path = StartupApp/Views/JobWebView.swift; sourceTree = SOURCE_ROOT; };
 		/* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -203,6 +205,7 @@
 				AA000013 /* SavedJobsStore.swift in Sources */,
 				AA000015 /* JobFeedViewModel.swift in Sources */,
 				AA000017 /* JobFeedView.swift in Sources */,
+				AA000019 /* JobWebView.swift in Sources */,
 );
 			runOnlyForDeploymentPostprocessing = 0;
 		};
