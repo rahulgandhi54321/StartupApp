@@ -94,6 +94,14 @@ extension JobPortal {
             homeHosts: ["unstop.com/jobs", "unstop.com/opportunities"],
             icon: "trophy.fill", color: "FF6B35", category: .india
         ),
+        JobPortal(
+            id: "productfolks", name: "ProductFolks",
+            description: "PM jobs & community in India",
+            loginURL:  "https://www.productfolks.com/login",
+            browseURL: "https://www.productfolks.com/discover",
+            homeHosts: ["productfolks.com/discover", "productfolks.com/dashboard", "productfolks.com"],
+            icon: "cube.fill", color: "7C3AED", category: .india
+        ),
 
         // ── Global ────────────────────────────────────────────────────────────
         JobPortal(
@@ -122,11 +130,19 @@ extension JobPortal {
         ),
         JobPortal(
             id: "wellfound", name: "Wellfound",
-            description: "Startup jobs & equity",
+            description: "Startup jobs & equity (formerly AngelList)",
             loginURL:  "https://wellfound.com/login",
             browseURL: "https://wellfound.com/jobs",
             homeHosts: ["wellfound.com/jobs", "wellfound.com/u/", "wellfound.com/talent"],
             icon: "airplane.circle.fill", color: "F7524A", category: .global
+        ),
+        JobPortal(
+            id: "angellist", name: "AngelList",
+            description: "Startup & tech jobs globally",
+            loginURL:  "https://angel.co/login",
+            browseURL: "https://angel.co/jobs",
+            homeHosts: ["angel.co/jobs", "angel.co/u/", "wellfound.com"],
+            icon: "star.circle.fill", color: "000000", category: .global
         ),
 
         // ── ATS Platforms ─────────────────────────────────────────────────────

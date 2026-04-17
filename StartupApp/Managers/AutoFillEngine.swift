@@ -93,13 +93,24 @@ func buildAutoFillJS(userDataJSON: String) -> String {
 
         if (el.tagName === 'SELECT') {
             var lo = value.toString().toLowerCase();
+            var expN = parseFloat(lo);
             for (var i = 0; i < el.options.length; i++) {
                 var opt = el.options[i];
-                if (opt.text.toLowerCase().includes(lo) ||
-                    opt.value.toLowerCase().includes(lo)) {
-                    el.selectedIndex = i;
-                    fire(el, ['change']);
-                    return true;
+                var optLo = opt.text.toLowerCase();
+                // Numeric range matching: "1-2 years", "3 to 5 years", "0-2"
+                if (!isNaN(expN) && expN >= 0) {
+                    var rm = optLo.match(/(\\d+)\\s*[-–to]+\\s*(\\d+)/);
+                    if (rm && expN >= parseFloat(rm[1]) && expN <= parseFloat(rm[2])) {
+                        el.selectedIndex = i; fire(el, ['change']); return true;
+                    }
+                    // "5+ years", "6+ years"
+                    var pm = optLo.match(/(\\d+)\\s*\\+/);
+                    if (pm && expN >= parseFloat(pm[1])) {
+                        el.selectedIndex = i; fire(el, ['change']); return true;
+                    }
+                }
+                if (optLo.includes(lo) || opt.value.toLowerCase().includes(lo)) {
+                    el.selectedIndex = i; fire(el, ['change']); return true;
                 }
             }
             return false;
@@ -197,7 +208,8 @@ func buildAutoFillJS(userDataJSON: String) -> String {
             el.getAttribute('autocomplete') || '',
             el.getAttribute('data-automation') || '',
             el.getAttribute('ng-model') || '',
-            el.className || ''
+            el.className || '',
+            getLabel(el) || ''   // ← label text: catches "How many years of experience…" etc.
         ].join(' ').toLowerCase().replace(/[-_\\s\\.]/g, '');
 
         return keys.some(function(k) {
@@ -306,6 +318,7 @@ func buildAutoFillJS(userDataJSON: String) -> String {
                 [['textarea[id*="cover"]', 'textarea[name*="cover"]',
                   'textarea[id*="message"]', 'textarea'],                            u.coverLetter],
             ]);
+            genericFill(ctx);
         });
     }
 
@@ -321,6 +334,7 @@ func buildAutoFillJS(userDataJSON: String) -> String {
                 [['textarea[name*="comments"]', 'textarea[name*="additional"]',
                   'textarea[placeholder*="cover" i]', 'textarea'], u.coverLetter],
             ]);
+            genericFill(ctx);
         });
     }
 
@@ -357,7 +371,7 @@ func buildAutoFillJS(userDataJSON: String) -> String {
     }
 
     // ── Wellfound / AngelList ────────────────────────────────────────────────
-    else if (host.includes('wellfound.com') || host.includes('angel.co')) {
+    else if (host.includes('wellfound.com') || host.includes('angel.co') || host.includes('angellist.com')) {
         ctxs.forEach(function(ctx) {
             genericFill(ctx);
         });
@@ -470,8 +484,7 @@ func buildAutoFillJS(userDataJSON: String) -> String {
 
         var inputs = qsa(ctx,
             'input:not([type="hidden"]):not([type="submit"]):not([type="button"])' +
-            ':not([type="checkbox"]):not([type="radio"]):not([type="file"])' +
-            ':not([type="password"]):not([type="search"]),' +
+            ':not([type="file"]):not([type="password"]):not([type="search"]),' +
             'textarea, select'
         );
 
@@ -483,6 +496,153 @@ func buildAutoFillJS(userDataJSON: String) -> String {
                 if (score(el, m.keys)) {
                     tryFill(el, m.val);
                     break;
+                }
+            }
+        });
+        // Always handle radio groups and checkboxes
+        handleRadios(ctx);
+        handleCheckboxes(ctx);
+    }
+
+    // ════════════════════════════════════════════════════════════════════════════
+    // RADIO BUTTON HANDLER  — yes/no, commute, work-auth, gender, experience level
+    // ════════════════════════════════════════════════════════════════════════════
+    function handleRadios(ctx) {
+        var radios = qsa(ctx, 'input[type="radio"]');
+        var groups = {};
+        radios.forEach(function(r) {
+            if (!isVisible(r)) return;
+            var key = r.name;
+            if (!key) {
+                try {
+                    var rg = r.closest('[role="radiogroup"]');
+                    key = rg ? 'rg_' + (rg.id || rg.className.substring(0,20)) : '';
+                } catch(e) {}
+            }
+            if (!key) key = 'rg_' + Math.round(Math.random()*99999);
+            if (!groups[key]) groups[key] = [];
+            groups[key].push(r);
+        });
+        Object.keys(groups).forEach(function(key) {
+            var group = groups[key];
+            if (group.some(function(r){ return r.checked; })) return; // already answered
+            var question = getRadioQuestion(group[0]);
+            answerRadioGroup(group, question);
+        });
+    }
+
+    function getRadioQuestion(radio) {
+        try {
+            var fs = radio.closest('fieldset');
+            if (fs) {
+                var leg = fs.querySelector('legend');
+                if (leg && leg.innerText.trim()) return leg.innerText.trim();
+            }
+        } catch(e) {}
+        var node = radio.parentElement;
+        var labelSels = [
+            '.fb-dash-form-element__label',
+            '.jobs-easy-apply-form-element__label',
+            '[class*="question-title"]', '[class*="questionTitle"]',
+            '[class*="form-label"]',     '[class*="label-text"]',
+            '[class*="form__label"]',    '[class*="field__label"]',
+            'legend', 'h3', 'h4', 'strong'
+        ];
+        for (var i = 0; i < 10 && node; i++, node = node.parentElement) {
+            for (var j = 0; j < labelSels.length; j++) {
+                try {
+                    var el = node.querySelector(labelSels[j]);
+                    if (el && el.innerText && el.innerText.trim().length > 3 && !el.contains(radio)) {
+                        return el.innerText.replace(/[*:\\n]/g,' ').trim();
+                    }
+                } catch(e) {}
+            }
+            try {
+                var role = node.getAttribute('role');
+                if (role === 'radiogroup' || node.tagName === 'FIELDSET') break;
+            } catch(e) {}
+        }
+        return radio.name || radio.getAttribute('aria-label') || '';
+    }
+
+    function answerRadioGroup(group, question) {
+        var q = question.toLowerCase().replace(/[*?:]/g,'');
+        var ans = '';
+
+        // Work authorisation / eligibility
+        if (/authorized|eligible to work|legal right|right to work|work permit/.test(q)) ans = 'yes';
+        else if (/require.*sponsor|need.*sponsor|visa.*sponsor|need.*sponsorship/.test(q)) ans = 'no';
+        // Commute / on-site
+        else if (/commut|on.site|in.person|willing.*travel|travel.*requir/.test(q)) ans = 'yes';
+        // Relocation
+        else if (/relocat/.test(q)) ans = u.remoteOK === 'Yes' ? 'no' : 'yes';
+        // Background / drug
+        else if (/background.*check|drug.*test|criminal.*check/.test(q)) ans = 'yes';
+        // Currently employed
+        else if (/currently.*employ|are.*employ|present.*employ/.test(q)) ans = 'yes';
+        // Remote
+        else if (/open.*remote|prefer.*remote|work remotely|remote.*work/.test(q)) {
+            ans = u.remoteOK === 'Yes' ? 'yes' : 'no';
+        }
+        // Gender — pick the matching label
+        else if (q.includes('gender') && u.gender) {
+            group.forEach(function(r) {
+                var lbl = getLabel(r).toLowerCase();
+                var val = (r.value || '').toLowerCase();
+                if (lbl.includes(u.gender.toLowerCase()) || val.includes(u.gender.toLowerCase())) {
+                    clickRadioBtn(r, question);
+                }
+            });
+            return;
+        }
+        // Disability / veteran (safe defaults)
+        else if (/disability|disabilit/.test(q)) ans = 'no';
+        else if (/veteran|military/.test(q)) ans = 'no';
+        // Agreement / confirmation
+        else if (/i agree|i accept|i confirm|consent/.test(q)) ans = 'yes';
+
+        if (!ans) return;
+
+        // Find the radio whose label matches
+        var match = null;
+        for (var i = 0; i < group.length; i++) {
+            var r = group[i];
+            var lbl = getLabel(r).toLowerCase().trim();
+            var val = (r.value || '').toLowerCase().trim();
+            if (lbl === ans || val === ans || lbl.startsWith(ans) || val.startsWith(ans)) {
+                match = r; break;
+            }
+        }
+        // Binary group fallback: index 0 = Yes, index 1 = No
+        if (!match && group.length === 2) match = group[ans === 'yes' ? 0 : 1];
+        if (match) clickRadioBtn(match, question);
+    }
+
+    function clickRadioBtn(radio, questionLabel) {
+        if (radio.checked) return;
+        try { radio.checked = true; radio.click(); fire(radio, ['change','input']); } catch(e) {}
+        var uid = 'radio|' + (radio.name||'') + '|' + (radio.value||'');
+        if (!seen.has(uid)) {
+            seen.add(uid);
+            filled.push({ label: questionLabel || getLabel(radio),
+                          value: getLabel(radio) || radio.value || 'Selected' });
+        }
+    }
+
+    // ════════════════════════════════════════════════════════════════════════════
+    // CHECKBOX HANDLER — auto-check commute / terms / work-auth confirmations
+    // ════════════════════════════════════════════════════════════════════════════
+    function handleCheckboxes(ctx) {
+        qsa(ctx, 'input[type="checkbox"]').forEach(function(cb) {
+            if (cb.checked || !isVisible(cb)) return;
+            var lbl = getLabel(cb).toLowerCase();
+            var autoCheck = /commut|willing.*travel|i agree|terms.*service|authorized.*work|confirm.*eligible|open to work|accept.*terms|consent/;
+            if (autoCheck.test(lbl)) {
+                try { cb.checked = true; cb.click(); fire(cb, ['change','input']); } catch(e) {}
+                var uid = 'cb|' + (cb.name||'') + '|' + (cb.id||'');
+                if (!seen.has(uid)) {
+                    seen.add(uid);
+                    filled.push({ label: getLabel(cb), value: 'Yes' });
                 }
             }
         });
