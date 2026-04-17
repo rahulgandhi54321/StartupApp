@@ -8,6 +8,75 @@ import Foundation
 //  • Portal-specific selectors for LinkedIn, Naukri, Greenhouse, Lever, etc.
 //  • Generic keyword-scoring fallback for any other site
 
+// MARK: - User data builder (shared helper)
+
+func buildUserData(profile: SupabaseService.ProfileRow?,
+                   jobPref: SupabaseService.JobPrefRow?,
+                   jobTitle: String = "", company: String = "") -> [String: String] {
+    let name        = profile?.name         ?? ""
+    let email       = profile?.email        ?? ""
+    let phone       = profile?.phone        ?? ""
+    let linkedin    = jobPref?.linkedin_url  ?? ""
+    let experience  = jobPref?.experience    ?? ""
+    let currentCTC  = jobPref?.current_ctc   ?? ""
+    let expectedCTC = jobPref?.expected_ctc  ?? ""
+    let skills      = jobPref?.skills        ?? ""
+    let role        = profile?.job_role      ?? ""
+    let notice      = jobPref?.notice_period ?? ""
+    let resumeURL   = jobPref?.resume_url    ?? ""
+    let gender      = profile?.gender        ?? ""
+    let locationRaw = jobPref?.location      ?? ""
+
+    // First physical city from pipe-separated prefs (skip remote/hybrid)
+    let locationCity: String = {
+        let parts = locationRaw.split(separator: "|").map { $0.trimmingCharacters(in: .whitespaces) }
+        return parts.first(where: {
+            let lo = $0.lowercased()
+            return !lo.contains("remote") && !lo.contains("hybrid") && !lo.contains("anywhere")
+        }) ?? parts.first ?? ""
+    }()
+
+    // Whether user is open to remote
+    let remoteOK = locationRaw.lowercased().contains("remote") ? "Yes" : "No"
+
+    let coverFor = jobTitle.isEmpty ? "exciting opportunities" : "the \(jobTitle) position\(company.isEmpty ? "" : " at \(company)")"
+    let cover = "Hi, I am \(name), a \(role) with \(experience) year(s) of experience. " +
+                "I am excited to apply for \(coverFor). " +
+                "My core skills include \(skills). I look forward to contributing to your team."
+
+    return [
+        "name":         name,
+        "firstName":    name.components(separatedBy: " ").first ?? name,
+        "lastName":     name.components(separatedBy: " ").dropFirst().joined(separator: " "),
+        "email":        email,
+        "phone":        phone,
+        "linkedin":     linkedin,
+        "experience":   experience,
+        "currentCTC":   currentCTC,
+        "expectedCTC":  expectedCTC,
+        "skills":       skills,
+        "coverLetter":  cover,
+        "role":         role,
+        "noticePeriod": notice,
+        "resumeURL":    resumeURL,
+        "gender":       gender,
+        "location":     locationCity,
+        "locationFull": locationRaw,
+        "remoteOK":     remoteOK,
+        "jobTitle":     jobTitle,
+        "company":      company,
+    ]
+}
+
+func buildUserDataJSON(profile: SupabaseService.ProfileRow?,
+                       jobPref: SupabaseService.JobPrefRow?,
+                       jobTitle: String = "", company: String = "") -> String {
+    let dict = buildUserData(profile: profile, jobPref: jobPref,
+                             jobTitle: jobTitle, company: company)
+    let data = try? JSONSerialization.data(withJSONObject: dict)
+    return String(data: data ?? Data(), encoding: .utf8) ?? "{}"
+}
+
 // MARK: - Main entry
 
 func buildAutoFillJS(userDataJSON: String) -> String {
@@ -184,11 +253,15 @@ func buildAutoFillJS(userDataJSON: String) -> String {
                   'input[autocomplete="email"]', '#email-address'], u.email],
                 [['input[id*="phone" i]', 'input[name*="phone" i]',
                   'input[autocomplete*="tel"]'], u.phone],
+                [['input[id*="city" i]', 'input[id*="location" i]',
+                  'input[name*="city" i]', 'input[placeholder*="city" i]'], u.location],
                 [['input[id*="linkedin" i]', 'input[name*="linkedin" i]'], u.linkedin],
+                [['input[id*="experience" i]', 'input[name*="experience" i]',
+                  'input[placeholder*="experience" i]'], u.experience],
                 [['textarea', 'div[contenteditable="true"]'], u.coverLetter],
             ]);
 
-            // Generic pass for additional dynamic questions
+            // Generic pass for dynamic questions (years of exp, CTC, etc.)
             genericFill(modal);
         });
     }
@@ -202,11 +275,17 @@ func buildAutoFillJS(userDataJSON: String) -> String {
                 [['input[placeholder*="mobile" i]', 'input[placeholder*="phone" i]',
                   'input[name*="phone" i]', 'input[name*="mobile" i]'], u.phone],
                 [['input[placeholder*="current" i][placeholder*="ctc" i]',
-                  'input[placeholder*="current" i][placeholder*="salary" i]'], u.currentCTC],
+                  'input[placeholder*="current" i][placeholder*="salary" i]',
+                  'input[id*="currentCTC" i]'], u.currentCTC],
                 [['input[placeholder*="expected" i][placeholder*="ctc" i]',
-                  'input[placeholder*="expected" i][placeholder*="salary" i]'], u.expectedCTC],
+                  'input[placeholder*="expected" i][placeholder*="salary" i]',
+                  'input[id*="expectedCTC" i]'], u.expectedCTC],
                 [['input[placeholder*="notice" i]', 'select[name*="notice" i]'], u.noticePeriod],
-                [['input[placeholder*="experience" i]', 'input[placeholder*="years" i]'], u.experience],
+                [['input[placeholder*="experience" i]', 'input[placeholder*="years" i]',
+                  'input[id*="experience" i]'], u.experience],
+                [['input[placeholder*="location" i]', 'input[placeholder*="city" i]',
+                  'input[placeholder*="preferred location" i]'], u.location],
+                [['select[name*="gender" i]', 'input[name*="gender" i]'], u.gender],
                 [['textarea[placeholder*="cover" i]', 'textarea[placeholder*="message" i]',
                   'textarea:not([style*="display:none"])'], u.coverLetter],
             ]);
@@ -357,30 +436,35 @@ func buildAutoFillJS(userDataJSON: String) -> String {
     // ════════════════════════════════════════════════════════════════════════════
     function genericFill(ctx) {
         var maps = [
-            { keys: ['firstname','givenname','fname','first_name','given_name'], val: u.firstName   },
-            { keys: ['lastname','familyname','lname','last_name','family_name','surname'], val: u.lastName    },
+            { keys: ['firstname','givenname','fname','first_name','given_name'],  val: u.firstName   },
+            { keys: ['lastname','familyname','lname','last_name','family_name','surname'], val: u.lastName },
             { keys: ['fullname','full_name','yourname','myname','applicant','candidate',
-                      'legalname','legal_name'], val: u.name },
-            // 'name' alone last so it doesn't steal first/last slots
-            { keys: ['email','emailid','emailaddr','email_id'], val: u.email       },
+                      'legalname','legal_name'],                                  val: u.name        },
+            { keys: ['email','emailid','emailaddr','email_id'],                   val: u.email       },
             { keys: ['phone','phoneno','phonenumber','mobile','mobileno','cellphone',
-                      'contactno','contact_number','tel'], val: u.phone },
-            { keys: ['linkedin','linkedinurl','linkedin_url','linkedinprofile'], val: u.linkedin    },
+                      'contactno','contact_number','tel'],                        val: u.phone       },
+            { keys: ['linkedin','linkedinurl','linkedin_url','linkedinprofile'],  val: u.linkedin    },
             { keys: ['experience','totalexp','yearsofexp','yoe','workexp','total_experience',
-                      'expinyears','years_of_experience'], val: u.experience  },
+                      'expinyears','years_of_experience','totalyears','workyears'], val: u.experience  },
             { keys: ['currentctc','currentpackage','currentsalary','current_ctc','current_salary',
-                      'presentctc','presentsalary'], val: u.currentCTC  },
+                      'presentctc','presentsalary','currentannual'],              val: u.currentCTC  },
             { keys: ['expectedctc','expectedpackage','expectedsalary','expected_ctc',
-                      'expected_salary','desiredsalary','desired_salary'], val: u.expectedCTC },
-            { keys: ['notice','noticeperiod','notice_period','availabilitytojoinin'],
-                                                                               val: u.noticePeriod },
+                      'expected_salary','desiredsalary','desired_salary','expectedannual'],
+                                                                                  val: u.expectedCTC },
+            { keys: ['notice','noticeperiod','notice_period','availabilitytojoin',
+                      'joining','joiningtime','joiningperiod'],                   val: u.noticePeriod },
             { keys: ['skills','keyskills','key_skills','skillset','skill_set',
-                      'technicalskills','tech_skills'], val: u.skills      },
+                      'technicalskills','tech_skills','corecompetencies'],        val: u.skills      },
+            { keys: ['location','city','currentlocation','current_location','preferred_location',
+                      'preferredlocation','worklocation','work_location','jobcity'],
+                                                                                  val: u.location    },
+            { keys: ['gender','sex'],                                             val: u.gender      },
+            { keys: ['remote','workanywhere','openstoremote','remotework'],       val: u.remoteOK    },
             { keys: ['coverletter','cover_letter','coveringletter','whyus','aboutyou',
                       'motivation','whyyou','summary','message','note','additional',
-                      'additionalnotes','anything_else'], val: u.coverLetter },
+                      'additionalnotes','anything_else'],                         val: u.coverLetter },
             { keys: ['jobtitle','currenttitle','currentdesig','currentdesignation',
-                      'currentrole','desiredposition','position'], val: u.role },
+                      'currentrole','desiredposition','position','designation'],  val: u.role        },
             { keys: ['name'], val: u.name }, // broadest — last
         ];
 

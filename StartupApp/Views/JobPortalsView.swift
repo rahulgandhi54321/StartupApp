@@ -240,54 +240,49 @@ struct PortalBrowserView: View {
     @State private var showAppliedBanner   = false
     @State private var showAutoLoginBanner = false
     @State private var isMarkedApplied     = false
-    @State private var barExpanded         = false
     @Environment(\.dismiss) private var dismiss
 
     enum AutoFillBrowserState { case idle, filling, done }
 
     var body: some View {
         NavigationStack {
-            ZStack(alignment: .bottom) {
-                // WebView
+            ZStack(alignment: .top) {
+                // WebView — pushes up above the bottom bar via safeAreaInset
                 PortalBrowserRepresentable(
                     startURL:     portal.browseURL,
                     controller:   ctrl,
-                    userDataJSON: buildUserDataJSON(),
+                    userDataJSON: makeUserDataJSON(),
                     profileEmail: profile?.email ?? ""
                 )
-                .ignoresSafeArea(edges: .bottom)
+                .ignoresSafeArea(edges: .top)
+                .safeAreaInset(edge: .bottom, spacing: 0) { bottomBar }
 
-                // Progress bar
+                // Progress bar (top)
                 if ctrl.progress < 1.0 {
-                    VStack {
-                        GeometryReader { geo in
-                            Rectangle()
-                                .fill(Color(hex: portal.color))
-                                .frame(width: geo.size.width * ctrl.progress, height: 3)
-                                .animation(.linear(duration: 0.1), value: ctrl.progress)
-                        }.frame(height: 3)
-                        Spacer()
-                    }
+                    GeometryReader { geo in
+                        Rectangle()
+                            .fill(Color(hex: portal.color))
+                            .frame(width: geo.size.width * ctrl.progress, height: 3)
+                            .animation(.linear(duration: 0.1), value: ctrl.progress)
+                    }.frame(height: 3)
                 }
 
                 // Banners
                 if showAppliedBanner || showAutoLoginBanner {
-                    VStack {
+                    VStack(spacing: 6) {
                         if showAutoLoginBanner {
                             BannerView(icon: "person.crop.circle.badge.checkmark",
-                                       color: portal.color, text: "Auto-login attempted on \(ctrl.currentDomain)")
+                                       color: portal.color,
+                                       text: "Auto-login attempted on \(ctrl.currentDomain)")
                         }
                         if showAppliedBanner {
-                            BannerView(icon: "bookmark.fill", color: "10B981", text: "Marked as Applied ✓")
+                            BannerView(icon: "bookmark.fill", color: "10B981",
+                                       text: "Marked as Applied ✓")
                         }
-                        Spacer()
                     }
-                    .padding(.top, 6)
+                    .padding(.top, 8)
                     .transition(.move(edge: .top).combined(with: .opacity))
                 }
-
-                // Bottom bar
-                bottomBar
             }
             .navigationTitle(ctrl.pageTitle.isEmpty ? portal.name : ctrl.pageTitle)
             .navigationBarTitleDisplayMode(.inline)
@@ -312,117 +307,67 @@ struct PortalBrowserView: View {
         }
     }
 
-    // ── Floating pill bottom bar (same collapse pattern as JobWebView) ──────────
+    // ── Bottom action bar — always visible below webpage (safeAreaInset) ─────────
     private var bottomBar: some View {
-        VStack(spacing: 0) {
-            Spacer()
-            HStack {
-                Spacer()
-                if barExpanded {
-                    HStack(spacing: 10) {
-                        // Auto-fill
-                        Button {
-                            withAnimation(.spring(response: 0.3)) { barExpanded = false }
-                            if autoFillState == .done { showReview = true }
-                            else { runAutoFill() }
-                        } label: {
-                            HStack(spacing: 6) {
-                                if autoFillState == .filling {
-                                    ProgressView().tint(.white).scaleEffect(0.75)
-                                } else {
-                                    Image(systemName: autoFillState == .done
-                                          ? "checkmark.circle.fill" : "wand.and.stars")
-                                        .font(.system(size: 13, weight: .semibold))
-                                }
-                                Text(autoFillState == .filling ? "Filling…" :
-                                     autoFillState == .done    ? "Review" : "Auto-fill")
-                                    .font(.system(size: 13, weight: .semibold, design: .rounded))
-                            }
-                            .foregroundColor(.white)
-                            .padding(.horizontal, 14).padding(.vertical, 10)
-                            .background(
-                                autoFillState == .done
-                                    ? AnyShapeStyle(Color(hex: "10B981"))
-                                    : AnyShapeStyle(LinearGradient(
-                                        colors: [Color(hex: portal.color), Color(hex: "A78BFA")],
-                                        startPoint: .leading, endPoint: .trailing))
-                            )
-                            .clipShape(Capsule())
-                        }
-                        .disabled(autoFillState == .filling)
+        HStack(spacing: 10) {
 
-                        // Mark Applied
-                        Button {
-                            withAnimation(.spring(response: 0.3)) { barExpanded = false }
-                            markApplied()
-                        } label: {
-                            HStack(spacing: 5) {
-                                Image(systemName: isMarkedApplied ? "bookmark.fill" : "bookmark")
-                                    .font(.system(size: 13, weight: .semibold))
-                                Text(isMarkedApplied ? "Applied ✓" : "Mark Applied")
-                                    .font(.system(size: 13, weight: .semibold, design: .rounded))
-                            }
-                            .foregroundColor(isMarkedApplied ? Color(hex: "6C63FF") : .white)
-                            .padding(.horizontal, 14).padding(.vertical, 10)
-                            .background(
-                                isMarkedApplied
-                                    ? AnyShapeStyle(Color(hex: "6C63FF").opacity(0.15))
-                                    : AnyShapeStyle(Color(hex: "1C1C1E"))
-                            )
-                            .clipShape(Capsule())
-                            .overlay(Capsule().stroke(
-                                isMarkedApplied ? Color(hex: "6C63FF") : Color.clear,
-                                lineWidth: 1.5))
-                        }
-
-                        // Close
-                        Button {
-                            withAnimation(.spring(response: 0.3)) { barExpanded = false }
-                        } label: {
-                            Image(systemName: "xmark")
-                                .font(.system(size: 12, weight: .bold))
-                                .foregroundColor(.secondary)
-                                .padding(10)
-                                .background(.thinMaterial)
-                                .clipShape(Circle())
-                        }
+            // ── Auto-fill / Review button (full width) ─────────────────────────
+            Button {
+                if autoFillState == .done { showReview = true }
+                else { runAutoFill() }
+            } label: {
+                HStack(spacing: 8) {
+                    if autoFillState == .filling {
+                        ProgressView().tint(.white).scaleEffect(0.8)
+                    } else {
+                        Image(systemName: autoFillState == .done
+                              ? "checkmark.circle.fill" : "wand.and.stars")
+                            .font(.system(size: 15, weight: .semibold))
                     }
-                    .padding(10)
-                    .background(.ultraThinMaterial)
-                    .clipShape(Capsule())
-                    .shadow(color: .black.opacity(0.15), radius: 12, y: 4)
-                    .transition(.scale(scale: 0.7, anchor: .bottomTrailing).combined(with: .opacity))
-                } else {
-                    Button {
-                        withAnimation(.spring(response: 0.35)) { barExpanded = true }
-                    } label: {
-                        HStack(spacing: 6) {
-                            Image(systemName: autoFillState == .done
-                                  ? "checkmark.circle.fill" : "wand.and.stars")
-                                .font(.system(size: 15, weight: .semibold))
-                                .foregroundColor(autoFillState == .done ? Color(hex: "10B981") : .white)
-                            if isMarkedApplied {
-                                Image(systemName: "bookmark.fill")
-                                    .font(.system(size: 13)).foregroundColor(Color(hex: "6C63FF"))
-                            }
-                        }
-                        .padding(.horizontal, 16).padding(.vertical, 12)
-                        .background(
-                            autoFillState == .done
-                                ? AnyShapeStyle(Color(hex: "10B981").opacity(0.15))
-                                : AnyShapeStyle(LinearGradient(
-                                    colors: [Color(hex: portal.color), Color(hex: "A78BFA")],
-                                    startPoint: .leading, endPoint: .trailing))
-                        )
-                        .clipShape(Capsule())
-                        .shadow(color: Color(hex: portal.color).opacity(0.4), radius: 10, y: 4)
-                    }
-                    .transition(.scale(scale: 0.7, anchor: .bottomTrailing).combined(with: .opacity))
+                    Text(autoFillState == .filling ? "Filling…" :
+                         autoFillState == .done    ? "Review & Submit" : "Auto-fill Form")
+                        .font(.system(size: 14, weight: .semibold, design: .rounded))
                 }
+                .foregroundColor(.white)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 13)
+                .background(
+                    autoFillState == .done
+                        ? AnyShapeStyle(Color(hex: "10B981"))
+                        : AnyShapeStyle(LinearGradient(
+                            colors: [Color(hex: portal.color), Color(hex: "A78BFA")],
+                            startPoint: .leading, endPoint: .trailing))
+                )
+                .clipShape(RoundedRectangle(cornerRadius: 12))
+                .animation(.spring(response: 0.3), value: autoFillState)
             }
-            .padding(.trailing, 16).padding(.bottom, 28)
+            .disabled(autoFillState == .filling)
+
+            // ── Mark Applied button (compact) ──────────────────────────────────
+            Button { markApplied() } label: {
+                HStack(spacing: 6) {
+                    Image(systemName: isMarkedApplied ? "bookmark.fill" : "bookmark")
+                        .font(.system(size: 14, weight: .semibold))
+                    Text(isMarkedApplied ? "Applied" : "Mark")
+                        .font(.system(size: 13, weight: .semibold, design: .rounded))
+                }
+                .foregroundColor(isMarkedApplied ? Color(hex: "6C63FF") : Color(hex: "1C1C1E"))
+                .padding(.vertical, 13).padding(.horizontal, 14)
+                .background(
+                    isMarkedApplied
+                        ? Color(hex: "6C63FF").opacity(0.1)
+                        : Color(hex: "F0F0F0")
+                )
+                .clipShape(RoundedRectangle(cornerRadius: 12))
+                .overlay(RoundedRectangle(cornerRadius: 12).stroke(
+                    isMarkedApplied ? Color(hex: "6C63FF") : Color.clear, lineWidth: 1.5))
+                .animation(.spring(response: 0.3), value: isMarkedApplied)
+            }
         }
-        .animation(.spring(response: 0.35), value: barExpanded)
+        .padding(.horizontal, 14).padding(.vertical, 10)
+        .background(.regularMaterial)
+        .overlay(Rectangle().frame(height: 0.5).foregroundColor(Color.black.opacity(0.1)),
+                 alignment: .top)
     }
 
     // ── Toolbar ────────────────────────────────────────────────────────────────
@@ -457,7 +402,7 @@ struct PortalBrowserView: View {
     private func runAutoFill() {
         guard let wv = ctrl.webView else { return }
         withAnimation { autoFillState = .filling }
-        let js = buildAutoFillJS(userDataJSON: buildUserDataJSON())
+        let js = buildAutoFillJS(userDataJSON: makeUserDataJSON())
         wv.evaluateJavaScript(js) { result, _ in
             DispatchQueue.main.async {
                 if let str = result as? String,
@@ -509,33 +454,9 @@ struct PortalBrowserView: View {
         }
     }
 
-    // ── Build user data ────────────────────────────────────────────────────────
-    private func buildUserDataJSON() -> String {
-        let name        = profile?.name         ?? ""
-        let email       = profile?.email        ?? ""
-        let phone       = profile?.phone        ?? ""
-        let linkedin    = jobPref?.linkedin_url  ?? ""
-        let experience  = jobPref?.experience    ?? ""
-        let currentCTC  = jobPref?.current_ctc   ?? ""
-        let expectedCTC = jobPref?.expected_ctc  ?? ""
-        let skills      = jobPref?.skills        ?? ""
-        let role        = profile?.job_role      ?? ""
-        let notice      = jobPref?.notice_period ?? ""
-        let cover = "Hi, I am \(name), a \(role) with \(experience) year(s) of experience. " +
-                    "My core skills include \(skills). " +
-                    "I am open to exciting opportunities and would love to contribute to your team."
-
-        let dict: [String: String] = [
-            "name": name,
-            "firstName": name.components(separatedBy: " ").first ?? name,
-            "lastName": name.components(separatedBy: " ").dropFirst().joined(separator: " "),
-            "email": email, "phone": phone, "linkedin": linkedin,
-            "experience": experience, "currentCTC": currentCTC,
-            "expectedCTC": expectedCTC, "skills": skills,
-            "coverLetter": cover, "role": role, "noticePeriod": notice,
-        ]
-        let data = try? JSONSerialization.data(withJSONObject: dict)
-        return String(data: data ?? Data(), encoding: .utf8) ?? "{}"
+    // ── Build user data (delegates to AutoFillEngine global function) ──────────
+    private func makeUserDataJSON() -> String {
+        buildUserDataJSON(profile: profile, jobPref: jobPref)
     }
 }
 
