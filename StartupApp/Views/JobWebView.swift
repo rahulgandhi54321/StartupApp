@@ -442,10 +442,16 @@ func autoLoginScript(email: String) -> String { """
 })();
 """ }
 
+// Safe JSON string literal — NSJSONSerialization only accepts Array/Dictionary at top level,
+// so passing a plain String throws an ObjC exception even inside try?.  Manual escape is safe.
 private func jsonString(_ s: String) -> String {
-    if let data = try? JSONSerialization.data(withJSONObject: s),
-       let str  = String(data: data, encoding: .utf8) { return str }
-    return "\"\(s)\""
+    let escaped = s
+        .replacingOccurrences(of: "\\", with: "\\\\")
+        .replacingOccurrences(of: "\"", with: "\\\"")
+        .replacingOccurrences(of: "\n", with: "\\n")
+        .replacingOccurrences(of: "\r", with: "\\r")
+        .replacingOccurrences(of: "\t", with: "\\t")
+    return "\"\(escaped)\""
 }
 
 // ── Submit JS ─────────────────────────────────────────────────────────────────
