@@ -7,9 +7,8 @@ final class JobFeedViewModel: ObservableObject {
     @Published var errorMsg: String?  = nil
     @Published var searchText         = ""
 
-    // ── Replace with your Railway/deployed URL once live ─────────────────────
-    // For local testing use your Mac's LAN IP, e.g. http://192.168.1.5:8080
-    private let baseURL = "https://jobhunter-backend.up.railway.app"
+    // Mac local backend — iPhone and Mac must be on same WiFi
+    private let baseURL = "http://192.168.0.11:8080"
 
     private var currentRole:     String = ""
     private var currentLocation: String = ""
