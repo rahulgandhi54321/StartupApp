@@ -92,6 +92,7 @@ struct ProfileView: View {
             } message: { Text("Are you sure you want to sign out?") }
         }
         .task { await loadAll() }
+        .onAppear { editingSection = nil; errorMsg = nil }
     }
 
     // ── Avatar hero ────────────────────────────────────────────────────────────
