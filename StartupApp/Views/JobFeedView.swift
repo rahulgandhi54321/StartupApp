@@ -498,31 +498,42 @@ struct JobCard: View {
 struct JobDetailView: View {
     let job: Job
     @EnvironmentObject var authVM: AuthViewModel
-    @ObservedObject private var store = SavedJobsStore.shared
+    @ObservedObject private var store        = SavedJobsStore.shared
+    @ObservedObject private var appliedStore = AppliedJobsStore.shared
+
+    @State private var showApplySheet = false
+
+    private var applyMethod: ApplyMethod { JobApplyRouter.method(for: job.url) }
 
     var body: some View {
         ScrollView(showsIndicators: false) {
             VStack(alignment: .leading, spacing: 16) {
-                // Header card
+
+                // ── Header card ────────────────────────────────────────────────
                 VStack(alignment: .leading, spacing: 8) {
-                    Text(job.title).font(.system(size: 22, weight: .bold, design: .rounded)).foregroundColor(.black)
-                    Text(job.company).font(.system(size: 16, design: .rounded)).foregroundColor(Color(hex: "6C63FF"))
+                    Text(job.title)
+                        .font(.system(size: 22, weight: .bold, design: .rounded)).foregroundColor(.black)
+                    Text(job.company)
+                        .font(.system(size: 16, design: .rounded)).foregroundColor(Color(hex: "6C63FF"))
                     HStack(spacing: 14) {
                         if !job.location.isEmpty { Label(job.location, systemImage: "location.fill") }
                         if !job.salary.isEmpty   { Label(job.salary,   systemImage: "indianrupeesign.circle.fill") }
                     }
                     .font(.system(size: 13, design: .rounded)).foregroundColor(.secondary)
                     if !job.posted_at.isEmpty {
-                        Text("Posted \(job.posted_at)").font(.system(size: 12, design: .rounded)).foregroundColor(.secondary)
+                        Text("Posted \(job.posted_at)")
+                            .font(.system(size: 12, design: .rounded)).foregroundColor(.secondary)
                     }
                 }
                 .padding(20).frame(maxWidth: .infinity, alignment: .leading)
                 .background(.white).clipShape(RoundedRectangle(cornerRadius: 18))
                 .shadow(color: .black.opacity(0.05), radius: 8, y: 3)
 
-                // Description card
+                // ── Description card ───────────────────────────────────────────
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("About the Role").font(.system(size: 13, weight: .semibold, design: .rounded)).foregroundColor(.secondary)
+                    Text("About the Role")
+                        .font(.system(size: 13, weight: .semibold, design: .rounded))
+                        .foregroundColor(.secondary)
                     Text(job.description.isEmpty ? "No description available." : job.description + "…")
                         .font(.system(size: 15, design: .rounded)).foregroundColor(.black).lineSpacing(4)
                 }
@@ -530,36 +541,53 @@ struct JobDetailView: View {
                 .background(.white).clipShape(RoundedRectangle(cornerRadius: 18))
                 .shadow(color: .black.opacity(0.05), radius: 8, y: 3)
 
+                // ── Actions ────────────────────────────────────────────────────
                 VStack(spacing: 12) {
-                    // ── Apply with auto-fill ────────────────────────────────
+
                     if !job.url.isEmpty {
-                        NavigationLink(destination: JobWebView(
-                            job: job,
-                            profile: authVM.remoteProfile,
-                            jobPref: authVM.remoteJobPref
-                        )) {
+                        // ── Primary apply button ───────────────────────────────
+                        Button { showApplySheet = true } label: {
                             HStack(spacing: 10) {
-                                Image(systemName: "wand.and.stars")
+                                Image(systemName: applyMethod == .safari
+                                      ? "safari.fill" : "wand.and.stars")
                                 VStack(alignment: .leading, spacing: 2) {
-                                    Text("Apply with Auto-fill")
+                                    Text(applyMethod == .safari
+                                         ? "Apply in Safari" : "Apply with Auto-fill")
                                         .font(.system(size: 16, weight: .semibold, design: .rounded))
-                                    Text("Opens form · auto-fills your details")
+                                    Text(applyMethod == .safari
+                                         ? "Uses your Safari login · no re-auth"
+                                         : "Form fields auto-filled from your profile")
                                         .font(.system(size: 11, design: .rounded)).opacity(0.8)
                                 }
                                 Spacer()
-                                Image(systemName: "chevron.right").font(.system(size: 13, weight: .semibold))
+                                Image(systemName: "chevron.right")
+                                    .font(.system(size: 13, weight: .semibold))
                             }
-                            .foregroundColor(.white).padding(.horizontal, 20).padding(.vertical, 14)
-                            .background(
-                                LinearGradient(colors: [Color(hex: "6C63FF"), Color(hex: "A78BFA")],
-                                               startPoint: .leading, endPoint: .trailing)
-                            )
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 20).padding(.vertical, 14)
+                            .background(LinearGradient(
+                                colors: [Color(hex: "6C63FF"), Color(hex: "A78BFA")],
+                                startPoint: .leading, endPoint: .trailing))
                             .clipShape(RoundedRectangle(cornerRadius: 14))
                             .shadow(color: Color(hex: "6C63FF").opacity(0.35), radius: 8, y: 4)
                         }
+
+                        // Applied state badge
+                        if appliedStore.isApplied(job) {
+                            HStack(spacing: 8) {
+                                Image(systemName: "checkmark.circle.fill")
+                                    .foregroundColor(Color(hex: "10B981"))
+                                Text("Applied ✓ — tracked in your pipeline")
+                                    .font(.system(size: 13, weight: .medium, design: .rounded))
+                                    .foregroundColor(Color(hex: "10B981"))
+                            }
+                            .frame(maxWidth: .infinity).padding(.vertical, 11)
+                            .background(Color(hex: "10B981").opacity(0.08))
+                            .clipShape(RoundedRectangle(cornerRadius: 12))
+                        }
                     }
 
-                    // Save button
+                    // ── Save button ────────────────────────────────────────────
                     Button {
                         withAnimation(.spring(response: 0.3)) { store.toggle(job) }
                     } label: {
@@ -572,14 +600,23 @@ struct JobDetailView: View {
                         .frame(maxWidth: .infinity).padding(.vertical, 16)
                         .background(Color(hex: "6C63FF").opacity(0.08))
                         .clipShape(RoundedRectangle(cornerRadius: 14))
-                        .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color(hex: "6C63FF").opacity(0.2), lineWidth: 1))
+                        .overlay(RoundedRectangle(cornerRadius: 14)
+                            .stroke(Color(hex: "6C63FF").opacity(0.2), lineWidth: 1))
                     }
                 }
             }
             .padding(16)
         }
         .background(Color(hex: "F5F5FF").ignoresSafeArea())
-        .navigationTitle("Job Details").navigationBarTitleDisplayMode(.inline)
+        .navigationTitle("Job Details")
+        .navigationBarTitleDisplayMode(.inline)
+        .sheet(isPresented: $showApplySheet) {
+            QuickFillSheet(
+                job:     job,
+                profile: authVM.remoteProfile,
+                jobPref: authVM.remoteJobPref
+            )
+        }
     }
 }
 

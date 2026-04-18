@@ -39,9 +39,9 @@ struct JobPortalsView: View {
                     PortalLoginView(portal: portal)
                 }
             }
-            // Browse portal full-screen
-            .fullScreenCover(item: $browsingPortal) { portal in
-                PortalBrowserView(
+            // Browse portal — Quick-fill sheet first, then SFSafariViewController
+            .sheet(item: $browsingPortal) { portal in
+                PortalSafariSheet(
                     portal:  portal,
                     profile: authVM.remoteProfile,
                     jobPref: authVM.remoteJobPref
@@ -222,7 +222,276 @@ struct PortalCard: View {
     }
 }
 
-// ── Portal Browser View ───────────────────────────────────────────────────────
+// ── Portal Safari Sheet ───────────────────────────────────────────────────────
+// Step 1: Show profile quick-copy chips + "Open Portal" CTA
+// Step 2: SFSafariViewController opens (shared Safari cookies = already logged in)
+// Step 3: On return, "Mark as Connected" + "Did you apply?" prompts
+
+struct PortalSafariSheet: View {
+    let portal:  JobPortal
+    let profile: SupabaseService.ProfileRow?
+    let jobPref: SupabaseService.JobPrefRow?
+
+    @Environment(\.dismiss) private var dismiss
+    @ObservedObject private var cStore = ConnectedPortalsStore.shared
+    @ObservedObject private var aStore = AppliedJobsStore.shared
+
+    @State private var showSafari       = false
+    @State private var showWebView      = false   // fallback WKWebView
+    @State private var returnedFromBrowse = false
+    @State private var copiedField: String? = nil
+
+    private var userData: [String: String] {
+        buildUserData(profile: profile, jobPref: jobPref)
+    }
+
+    private var quickFields: [(icon: String, label: String, value: String)] {
+        [
+            ("person.fill",                 "Full Name",     userData["name"]         ?? ""),
+            ("envelope.fill",               "Email",         userData["email"]        ?? ""),
+            ("phone.fill",                  "Phone",         userData["phone"]        ?? ""),
+            ("link",                        "LinkedIn URL",  userData["linkedin"]     ?? ""),
+            ("briefcase.fill",              "Experience",    "\(userData["experience"] ?? "") yrs"),
+            ("indianrupeesign.circle.fill", "Current CTC",  userData["currentCTC"]   ?? ""),
+            ("indianrupeesign.circle.fill", "Expected CTC", userData["expectedCTC"]  ?? ""),
+            ("calendar.badge.clock",        "Notice Period", userData["noticePeriod"] ?? ""),
+            ("mappin.fill",                 "Location",      userData["location"]     ?? ""),
+            ("doc.text.fill",               "Resume URL",    userData["resumeURL"]    ?? ""),
+        ].filter { !$0.value.isEmpty && $0.value != " yrs" }
+    }
+
+    var body: some View {
+        NavigationStack {
+            ZStack {
+                Color(hex: "F5F5FF").ignoresSafeArea()
+                ScrollView(showsIndicators: false) {
+                    VStack(spacing: 14) {
+                        portalHeader
+                        if returnedFromBrowse { postBrowseCard }
+                        else {
+                            safariInfoCard
+                            quickFillCard
+                            openButtons
+                        }
+                        Spacer(minLength: 20)
+                    }
+                    .padding(16)
+                }
+            }
+            .navigationTitle(portal.name)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Close") { dismiss() }.foregroundColor(.secondary)
+                }
+            }
+        }
+        .presentationDetents([.medium, .large])
+        .presentationDragIndicator(.visible)
+        // ── SFSafariViewController ─────────────────────────────────────────────
+        .fullScreenCover(isPresented: $showSafari, onDismiss: {
+            withAnimation(.spring(response: 0.4)) { returnedFromBrowse = true }
+        }) {
+            if let url = URL(string: portal.browseURL) {
+                SafariView(url: url,
+                           tintColor: Color(hex: portal.color)) { showSafari = false }
+                    .ignoresSafeArea()
+            }
+        }
+        // ── WKWebView fallback (portals that support auto-fill) ────────────────
+        .fullScreenCover(isPresented: $showWebView, onDismiss: {
+            withAnimation(.spring(response: 0.4)) { returnedFromBrowse = true }
+        }) {
+            PortalBrowserView(portal: portal, profile: profile, jobPref: jobPref)
+        }
+    }
+
+    // ── Portal header ──────────────────────────────────────────────────────────
+    private var portalHeader: some View {
+        HStack(spacing: 14) {
+            ZStack {
+                RoundedRectangle(cornerRadius: 14)
+                    .fill(Color(hex: portal.color).opacity(0.12))
+                    .frame(width: 54, height: 54)
+                Image(systemName: portal.icon)
+                    .font(.system(size: 24))
+                    .foregroundColor(Color(hex: portal.color))
+            }
+            VStack(alignment: .leading, spacing: 4) {
+                HStack(spacing: 6) {
+                    Text(portal.name)
+                        .font(.system(size: 17, weight: .bold, design: .rounded))
+                    if cStore.isConnected(portal) {
+                        Image(systemName: "checkmark.circle.fill")
+                            .font(.system(size: 14))
+                            .foregroundColor(Color(hex: "10B981"))
+                    }
+                }
+                Text(portal.description)
+                    .font(.system(size: 13, design: .rounded)).foregroundColor(.secondary)
+                Text(portal.category.rawValue.uppercased())
+                    .font(.system(size: 9, weight: .semibold, design: .rounded))
+                    .foregroundColor(Color(hex: portal.color))
+                    .padding(.horizontal, 8).padding(.vertical, 3)
+                    .background(Color(hex: portal.color).opacity(0.1)).clipShape(Capsule())
+            }
+            Spacer()
+        }
+        .padding(16).background(.white)
+        .clipShape(RoundedRectangle(cornerRadius: 16))
+        .shadow(color: Color(hex: portal.color).opacity(0.08), radius: 8, y: 2)
+    }
+
+    // ── Why Safari info card ───────────────────────────────────────────────────
+    private var safariInfoCard: some View {
+        HStack(spacing: 10) {
+            Image(systemName: "safari.fill")
+                .font(.system(size: 15)).foregroundColor(Color(hex: "0A66C2"))
+            VStack(alignment: .leading, spacing: 3) {
+                Text("Opens in Safari — no login needed")
+                    .font(.system(size: 13, weight: .semibold, design: .rounded))
+                Text("Shares your existing Safari cookies. If you're already logged in there, you're in.")
+                    .font(.system(size: 11, design: .rounded)).foregroundColor(.secondary)
+            }
+        }
+        .padding(14)
+        .background(Color(hex: "0A66C2").opacity(0.06))
+        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .overlay(RoundedRectangle(cornerRadius: 12)
+            .stroke(Color(hex: "0A66C2").opacity(0.15), lineWidth: 1))
+    }
+
+    // ── Quick-copy chips ───────────────────────────────────────────────────────
+    private var quickFillCard: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Image(systemName: "doc.on.clipboard.fill")
+                    .font(.system(size: 13)).foregroundColor(Color(hex: "6C63FF"))
+                Text("Quick Copy")
+                    .font(.system(size: 14, weight: .bold, design: .rounded))
+                Spacer()
+                Text("Tap to copy → paste into forms")
+                    .font(.system(size: 10, design: .rounded)).foregroundColor(.secondary)
+            }
+            FlowLayout(spacing: 8) {
+                ForEach(quickFields, id: \.label) { f in
+                    QuickCopyChip(icon: f.icon, label: f.label, value: f.value,
+                                  isCopied: copiedField == f.label) {
+                        UIPasteboard.general.string = f.value
+                        withAnimation(.spring(response: 0.25)) { copiedField = f.label }
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 1.8) {
+                            withAnimation { copiedField = nil }
+                        }
+                    }
+                }
+            }
+        }
+        .padding(16).background(.white)
+        .clipShape(RoundedRectangle(cornerRadius: 16))
+        .shadow(color: .black.opacity(0.04), radius: 8, y: 2)
+    }
+
+    // ── Open buttons ───────────────────────────────────────────────────────────
+    private var openButtons: some View {
+        VStack(spacing: 10) {
+            Button { showSafari = true } label: {
+                HStack(spacing: 10) {
+                    Image(systemName: "safari.fill")
+                    Text("Open \(portal.name) in Safari")
+                        .font(.system(size: 16, weight: .semibold, design: .rounded))
+                }
+                .foregroundColor(.white).frame(maxWidth: .infinity).padding(.vertical, 15)
+                .background(LinearGradient(
+                    colors: [Color(hex: portal.color), Color(hex: "A78BFA")],
+                    startPoint: .leading, endPoint: .trailing))
+                .clipShape(RoundedRectangle(cornerRadius: 14))
+                .shadow(color: Color(hex: portal.color).opacity(0.3), radius: 8, y: 4)
+            }
+
+            Button { showWebView = true } label: {
+                HStack(spacing: 6) {
+                    Image(systemName: "wand.and.stars").font(.system(size: 12))
+                    Text("Try Auto-fill WebView (may be blocked on this portal)")
+                        .font(.system(size: 12, weight: .medium, design: .rounded))
+                }
+                .foregroundColor(.secondary).frame(maxWidth: .infinity).padding(.vertical, 11)
+                .background(Color(.systemGray6)).clipShape(RoundedRectangle(cornerRadius: 12))
+            }
+        }
+    }
+
+    // ── Post-browse card ───────────────────────────────────────────────────────
+    private var postBrowseCard: some View {
+        VStack(spacing: 14) {
+            // Connected?
+            if !cStore.isConnected(portal) {
+                VStack(spacing: 10) {
+                    HStack(spacing: 10) {
+                        Image(systemName: "link.circle.fill")
+                            .font(.system(size: 24)).foregroundColor(Color(hex: portal.color))
+                        VStack(alignment: .leading, spacing: 3) {
+                            Text("Mark portal as connected?")
+                                .font(.system(size: 14, weight: .bold, design: .rounded))
+                            Text("Logged in successfully? Mark it so you know.")
+                                .font(.system(size: 11, design: .rounded)).foregroundColor(.secondary)
+                        }
+                    }
+                    .padding(16).background(.white)
+                    .clipShape(RoundedRectangle(cornerRadius: 16))
+                    .shadow(color: .black.opacity(0.05), radius: 8, y: 2)
+
+                    HStack(spacing: 10) {
+                        Button {
+                            cStore.markConnected(portal)
+                        } label: {
+                            HStack(spacing: 6) {
+                                Image(systemName: "checkmark.circle.fill")
+                                Text("Yes, I logged in")
+                            }
+                            .font(.system(size: 14, weight: .semibold, design: .rounded))
+                            .foregroundColor(.white).frame(maxWidth: .infinity).padding(.vertical, 13)
+                            .background(Color(hex: portal.color))
+                            .clipShape(RoundedRectangle(cornerRadius: 13))
+                        }
+                        Button {
+                            withAnimation { returnedFromBrowse = false }
+                        } label: {
+                            Text("Browse Again")
+                                .font(.system(size: 14, weight: .semibold, design: .rounded))
+                                .foregroundColor(.secondary).frame(maxWidth: .infinity).padding(.vertical, 13)
+                                .background(Color(.systemGray6)).clipShape(RoundedRectangle(cornerRadius: 13))
+                        }
+                    }
+                }
+            } else {
+                HStack(spacing: 8) {
+                    Image(systemName: "checkmark.circle.fill")
+                        .foregroundColor(Color(hex: "10B981"))
+                    Text("\(portal.name) is connected ✓")
+                        .font(.system(size: 14, weight: .semibold, design: .rounded))
+                        .foregroundColor(Color(hex: "10B981"))
+                }
+                .frame(maxWidth: .infinity).padding(.vertical, 12)
+                .background(Color(hex: "10B981").opacity(0.1))
+                .clipShape(RoundedRectangle(cornerRadius: 12))
+
+                Button { showSafari = true } label: {
+                    HStack(spacing: 8) {
+                        Image(systemName: "safari.fill")
+                        Text("Browse Again")
+                    }
+                    .font(.system(size: 15, weight: .semibold, design: .rounded))
+                    .foregroundColor(Color(hex: portal.color)).frame(maxWidth: .infinity).padding(.vertical, 13)
+                    .background(Color(hex: portal.color).opacity(0.1))
+                    .clipShape(RoundedRectangle(cornerRadius: 13))
+                }
+            }
+        }
+    }
+}
+
+// ── Portal Browser View (WKWebView fallback — auto-fill) ──────────────────────
+// Still available via "Try Auto-fill WebView" for portals that allow it.
 // Full in-app browser — persistent cookies, auto-fill everywhere, mark applied
 
 struct PortalBrowserView: View {
